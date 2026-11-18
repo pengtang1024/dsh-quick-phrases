@@ -1,0 +1,24 @@
+# 统一编辑器基础格式：UTF-8、LF、行尾空白、末尾空行。
+# 更细的风格约定（命名、注释、文案）见 docs/DETAIL.md 与项目约定。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+# 兜底：没有专门规则的文件按四空格缩进。
+indent_size = 4
+
+# js / json / yml / md 统一两空格缩进。
+[*.{js,mjs,json,yml,yaml,md,svg,css,html}]
+indent_size = 2
+
+[*.md]
+# Markdown 行尾两个空格是硬换行，不能裁掉。
+trim_trailing_whitespace = false
+
+[Makefile]
+# Makefile 只能用 Tab 缩进。
+indent_style = tab

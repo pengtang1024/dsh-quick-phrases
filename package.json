@@ -3,6 +3,31 @@
   "version": "0.3.1",
   "private": true,
   "description": "Quick phrase chips under the composer with a managed phrase list (label and sent text are separate).",
+  "license": "MIT",
+  "author": {
+    "name": "pengtang1024",
+    "email": "pengtang1024@qq.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pengtang1024/dsh-quick-phrases.git"
+  },
+  "homepage": "https://github.com/pengtang1024/dsh-quick-phrases#readme",
+  "bugs": {
+    "url": "https://github.com/pengtang1024/dsh-quick-phrases/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "quick-phrases",
+    "composer",
+    "chips",
+    "productivity"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "exports": {
     ".": "./index.js",

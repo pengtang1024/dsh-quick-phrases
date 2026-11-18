@@ -1,5 +1,16 @@
 # 变更记录
 
+## Unreleased
+
+文档与开源配套（不改插件行为）：
+
+- 新增 `LICENSE`（MIT）、`CONTRIBUTING.md`、`SECURITY.md`、`CODE_OF_CONDUCT.md`。
+- 新增 GitHub 配套：Issue 表单、PR 模板、`.github/workflows/ci.yml`（`node --check` + smoke）。
+- 新增 `.editorconfig`、`docs/ARCHITECTURE.md`（插槽 / 数据层 / 样式 / 测试说明）与 `docs/images/` 截图。
+- 重写 `README.md`：功能、安装、位置与点按行为、数据与隐私、开发命令、目录结构。
+- `test/smoke.mjs` 改为相对路径读取 `client.js`；`test/preview.mjs` 自动发现 Playwright Chromium，并可用 `DQP_CHROME` / `DQP_ASAR` 覆盖。
+- `package.json` 补齐 `license` / `author` / `repository` / `homepage` / `bugs` / `keywords` / `engines`。
+
 ## 0.3.1
 
 - **管理页重做**：两项行为设置收成紧凑下拉框（显示位置 / 点按短语时），不再各占一张卡片。

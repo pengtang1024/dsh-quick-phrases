@@ -56,3 +56,9 @@ Chips, fields and cards use the host's semantic tokens (`--dsw-alias-*`, `--dsw-
 - Phrases are plain text: no variables, no commands.
 - The row only appears around the session composer; background and scheduled tasks are untouched.
 - Text follows the DSH UI language (Chinese / English), including the four defaults.
+
+## More
+
+- Implementation notes (slots, stores, styling, tests): [docs/ARCHITECTURE.md](ARCHITECTURE.md)
+- Contributing: [CONTRIBUTING.md](../CONTRIBUTING.md)
+- Security reports: [SECURITY.md](../SECURITY.md)

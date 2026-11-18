@@ -1,0 +1,9 @@
+# 禁用空白 issue，把问题和讨论引导到固定入口。
+blank_issues_enabled: false
+contact_links:
+  - name: 讨论与提问（Discussions）
+    url: https://github.com/pengtang1024/dsh-quick-phrases/discussions
+    about: 用法咨询、想法讨论、不确定该不该提 issue 的话题，都欢迎先在这里聊。
+  - name: 使用文档（docs/DETAIL.md）
+    url: https://github.com/pengtang1024/dsh-quick-phrases/blob/main/docs/DETAIL.md
+    about: 位置、点按行为、管理页操作与数据存储方式的详细说明，提问前可先对照这里。

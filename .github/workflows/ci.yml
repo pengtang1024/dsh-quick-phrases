@@ -1,0 +1,37 @@
+# 冒烟流水线：纯 JS 客户端插件，无构建、无运行时依赖，所以不装依赖，也不配缓存。
+# test/smoke.mjs 用 import.meta.url 相对定位 client.js，检出到任意目录都能直接跑。
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: smoke (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check client.js
+        run: node --check client.js
+
+      - name: Syntax check index.js
+        run: node --check index.js
+
+      - name: Smoke test
+        run: node test/smoke.mjs
+
+      - name: Validate JSON
+        run: node -e "for (const f of ['package.json','locale/zh.json','locale/en.json']) JSON.parse(require('fs').readFileSync(f,'utf8')); console.log('JSON OK')"

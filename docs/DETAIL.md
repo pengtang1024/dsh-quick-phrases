@@ -56,3 +56,9 @@
 - 短语是纯文本；不解析变量、不执行命令。
 - 只在会话输入框附近出现，不影响后台任务和计划任务。
 - 语言跟随 DSH 界面语言（中文 / English），默认四条短语也按语言生成本地化文本。
+
+## 更多
+
+- 实现细节（插槽、数据层、样式与测试）：[docs/ARCHITECTURE.md](ARCHITECTURE.md)
+- 参与开发：[CONTRIBUTING.md](../CONTRIBUTING.md)
+- 安全报告：[SECURITY.md](../SECURITY.md)

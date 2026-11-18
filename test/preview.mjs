@@ -15,9 +15,26 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PKG = path.resolve(HERE, '..')
 const SOURCE = fs.readFileSync(path.join(PKG, 'client.js'), 'utf8')
 
-const ASAR = '/opt/DSH NEXT/resources/app.asar/node_modules/@deepseek-ai'
+// Host assets are only needed for the themed screenshots; HTML output works without them.
+const ASAR = process.env.DQP_ASAR || '/opt/DSH NEXT/resources/app.asar/node_modules/@deepseek-ai'
 const THEME_CSS = path.join(ASAR, 'dsh-client-ui-theme/src/styles/design-platform.css')
-const CHROME = '/home/pt/.cache/ms-playwright/chromium-1248/chrome-linux64/chrome'
+// Chromium: explicit env first, then the Playwright browser cache, else skip screenshots.
+function findChrome() {
+  const cache = path.join(process.env.HOME || '', '.cache', 'ms-playwright')
+  try {
+    for (const dir of fs.readdirSync(cache).sort().reverse()) {
+      if (!dir.startsWith('chromium')) continue
+      for (const sub of ['chrome-linux64/chrome', 'chrome-linux/chrome']) {
+        const candidate = path.join(cache, dir, sub)
+        if (fs.existsSync(candidate)) return candidate
+      }
+    }
+  } catch (error) {
+    // No Playwright cache: screenshots stay skipped.
+  }
+  return ''
+}
+const CHROME = process.env.DQP_CHROME || process.env.CHROME_PATH || findChrome()
 
 /* ---------------- loader + fake React (same shape as the smoke test) ---------------- */
 
@@ -133,7 +150,9 @@ function serialize(node) {
 
 /* ---------------- pages ---------------- */
 
-const themeCss = fs.readFileSync(THEME_CSS, 'utf8')
+const themeCss = fs.existsSync(THEME_CSS)
+  ? fs.readFileSync(THEME_CSS, 'utf8')
+  : '/* theme tokens not found — set DQP_ASAR to the host app.asar node_modules/@deepseek-ai */'
 const managerHtml = serialize(render('manager', manager, { t }))
 const dockHtml = serialize(render('dock', dock, { t, inputActions: { setDraft() {} }, openManager: () => true }))
 
@@ -239,7 +258,11 @@ if (process.argv.includes('--shot')) {
     ['/tmp/dqp-stack-dark.html', '/tmp/dqp-stack-dark.png', '980,460'],
     ['/tmp/dqp-stack-light.html', '/tmp/dqp-stack-light.png', '980,460'],
   ]
-  for (const [html, out, size] of shots) {
+  const chromeMissing = !fs.existsSync(CHROME)
+  if (chromeMissing) {
+    console.log('skip screenshots: no chrome at ' + CHROME + ' (set DQP_CHROME to a chromium binary)')
+  }
+  for (const [html, out, size] of chromeMissing ? [] : shots) {
     execFileSync(CHROME, [
       '--headless=new',
       '--disable-gpu',

@@ -5,10 +5,7 @@ import fs from 'node:fs'
 import vm from 'node:vm'
 import assert from 'node:assert/strict'
 
-const SOURCE = fs.readFileSync(
-  '/home/pt/Documents/deepseek-harness/default-workspace/dsh-quick-phrases/client.js',
-  'utf8',
-)
+const SOURCE = fs.readFileSync(new URL('../client.js', import.meta.url), 'utf8')
 
 const storage = new Map()
 const localStorage = {

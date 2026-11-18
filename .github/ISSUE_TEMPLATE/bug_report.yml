@@ -1,0 +1,88 @@
+# 缺陷报告（GitHub Issue Forms）
+# 语法参考：https://docs.github.com/community/managing-your-repositorys-settings-and-features/customizing-your-repository/configuring-issue-templates-for-your-repository
+name: 缺陷报告（Bug report）
+description: 随手记下短语行、管理页或保存行为出问题的地方，帮我们更快复现。
+title: '[Bug] '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量把版本号和环境写全，截图里**不要**出现会话内容、API Key 等隐私信息。
+
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH 版本与运行形态
+      description: 版本号可以在「设置 → 关于」里看到；同时说明是桌面端还是 Web 端。
+      placeholder: '例如 0.2.2-rc.3，桌面端（Electron）/ Web 端（浏览器）'
+      value: ''
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: 插件版本
+      description: 在「设置 → 插件」里看 dsh-quick-phrases 的版本号。
+      placeholder: '例如 0.3.1'
+      value: ''
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 操作系统与主题
+      description: 系统名称与版本，以及 DSH 当前的深色 / 浅色主题。
+      placeholder: '例如 Ubuntu 26.04 / Windows 11；深色主题'
+      value: ''
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请按 1、2、3 写清楚操作顺序，以及当时输入框里有没有已写内容或附件。
+      placeholder: |
+        1. 打开「设置 → 快捷短语」，把点按行为设为「直接发送」
+        2. 清空输入框
+        3. 点「继续」按钮
+        4. ……
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expect-actual
+    attributes:
+      label: 期望结果与实际结果
+      description: 用两段分别写「你以为会发生什么」和「实际发生了什么」；有报错请贴控制台原文。
+      placeholder: |
+        期望：点一下「继续」后，这条短语立刻作为消息发出。
+        实际：按钮没有反应，控制台报 `xxx is not a function`。
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图（可选）
+      description: 可以直接把图片拖进这个输入框。**注意**：不要贴包含会话内容、隐私信息或凭据的截图，请先打码或裁剪。
+      placeholder: '拖入图片，或描述界面现象。'
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 附加信息
+      description: 补充线索，例如是否更换过显示位置、是否清过站点数据、是否装有其它改动输入框的插件。
+      placeholder: '例如：清空 localStorage 后问题消失 / 换成「输入框上方」位置就正常。'
+      render: markdown
+    validations:
+      required: false

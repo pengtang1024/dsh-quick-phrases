@@ -58,11 +58,19 @@ window.__ModuleLoader__.load({
     var DICTS = {
       zh: {
         'section.title': '快捷短语',
-        'section.description': '在输入框附近放一排短语按钮。点按会把这条短语直接发出去（输入框里已经有内容时改为插到光标处）；按钮上显示的是「显示名称」，和发送内容可以分开编辑。位置和点按行为都能随时改。',
+        'section.description': '在输入框附近放一排短语按钮。按钮上显示的是「显示名称」，发送内容单独编辑，两者可以完全不同。下面的两项决定它出现在哪里、点一下会发生什么。',
         'dock.manage': '管理',
         'dock.openFailed': '请在「设置 — 快捷短语」中管理',
         'dock.tooltip': '写入输入框',
         'manager.add': '新增短语',
+        'manager.phrases': '短语',
+        'manager.count': '{n} 条',
+        'manager.preview': '按钮预览',
+        'manager.untitled': '未命名',
+        'manager.chars': '{n} 字',
+        'manager.drag': '拖动排序',
+        'manager.deleteConfirm': '删除这条短语',
+        'manager.deleteShort': '确认',
         'manager.reset': '恢复默认',
         'manager.resetConfirm': '再点一次确认',
         'manager.delete': '删除',
@@ -84,7 +92,7 @@ window.__ModuleLoader__.load({
         'manager.newPhrase': '新短语',
         'manager.empty': '列表是空的，先新增一条短语。',
         'manager.savedHint': '改动会自动保存并立即生效，无需重启。',
-        'manager.tip': '点按短语按钮只会写入输入框，不会自动发送。',
+        'manager.tip': '拖动手柄或 ↑↓ 都能调整顺序，改动会自动保存。',
         'default.continue.label': '继续',
         'default.continue.text': '继续',
         'default.commit.label': '提交',
@@ -96,11 +104,19 @@ window.__ModuleLoader__.load({
       },
       en: {
         'section.title': 'Quick phrases',
-        'section.description': 'A row of phrase chips next to the composer. Clicking one sends that phrase right away (or inserts it at the caret when the composer already has content); the chip shows the display name, which can differ from the text. Position and click behaviour are both editable.',
+        'section.description': 'A row of phrase chips next to the composer. A chip shows its display name while the text it inserts is edited separately. The two options below decide where it lives and what a click does.',
         'dock.manage': 'Manage',
         'dock.openFailed': 'Manage them in Settings — Quick phrases',
         'dock.tooltip': 'Insert into the composer',
         'manager.add': 'Add phrase',
+        'manager.phrases': 'Phrases',
+        'manager.count': '{n}',
+        'manager.preview': 'Chip preview',
+        'manager.untitled': 'Untitled',
+        'manager.chars': '{n} chars',
+        'manager.drag': 'Drag to reorder',
+        'manager.deleteConfirm': 'Delete this phrase',
+        'manager.deleteShort': 'Confirm',
         'manager.reset': 'Restore defaults',
         'manager.resetConfirm': 'Click again to confirm',
         'manager.delete': 'Delete',
@@ -122,7 +138,7 @@ window.__ModuleLoader__.load({
         'manager.newPhrase': 'New phrase',
         'manager.empty': 'The list is empty. Add one phrase to start.',
         'manager.savedHint': 'Changes save automatically and apply immediately.',
-        'manager.tip': 'A chip only fills the composer; it never sends by itself.',
+        'manager.tip': 'Drag the handle or use ↑↓ to reorder; edits are saved automatically.',
         'default.continue.label': 'Continue',
         'default.continue.text': 'Continue',
         'default.commit.label': 'Commit',
@@ -234,8 +250,10 @@ window.__ModuleLoader__.load({
     }
 
     function insertPhrase() {
-      if (state === null) return
-      replacePhrases(state.concat([{ id: uniqueId(), label: '', text: '' }]))
+      if (state === null) return null
+      var id = uniqueId()
+      replacePhrases(state.concat([{ id: id, label: '', text: '' }]))
+      return id
     }
 
     function removePhrase(index) {
@@ -251,6 +269,16 @@ window.__ModuleLoader__.load({
       var moved = next[index]
       next[index] = next[target]
       next[target] = moved
+      replacePhrases(next)
+    }
+
+    /** Drag-and-drop reorder: pull one entry out and drop it at `to`. */
+    function movePhraseTo(from, to) {
+      if (state === null) return
+      if (from < 0 || to < 0 || from >= state.length || to >= state.length || from === to) return
+      var next = state.slice()
+      var moved = next.splice(from, 1)[0]
+      next.splice(to, 0, moved)
       replacePhrases(next)
     }
 
@@ -435,41 +463,91 @@ window.__ModuleLoader__.load({
     var MANAGER_CSS =
       '.dqp-page{box-sizing:border-box;height:100%;min-height:0;overflow-y:auto;display:flex;justify-content:center;' +
       'padding:24px clamp(20px,4vw,44px) 48px;font-family:inherit;color:var(--dsw-alias-label-primary,#eee)}' +
-      '.dqp-inner{width:100%;max-width:760px;display:flex;flex-direction:column;gap:14px}' +
+      '.dqp-inner{width:100%;max-width:760px;display:flex;flex-direction:column;gap:18px}' +
+      '.dqp-head{display:flex;align-items:flex-start;gap:12px}' +
+      '.dqp-head-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}' +
       '.dqp-title{margin:0;font-size:16px;line-height:24px;font-weight:600}' +
       '.dqp-desc{margin:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
-      '.dqp-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}' +
+      '.dqp-badge{flex:0 0 auto;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;' +
+      'background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.05));color:var(--dsw-alias-label-tertiary,#9a9a9a);font-size:11px;line-height:1}' +
+      '.dqp-options{display:flex;flex-direction:column;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'border-radius:var(--dsw-radius-md,10px);background:var(--dsw-alias-settings-card-fill,transparent);overflow:hidden}' +
+      '.dqp-option{display:flex;align-items:center;gap:16px;padding:10px 12px;border-top:.5px solid var(--dsw-alias-border-l1,#3a3a3a)}' +
+      '.dqp-option:first-child{border-top:0}' +
+      '.dqp-option-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}' +
+      '.dqp-option-label{font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary,#eee)}' +
+      '.dqp-option-hint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-caption,#7d7d7d)}' +
+      '.dqp-select-wrap{position:relative;flex:0 0 auto;display:inline-flex}' +
+      '.dqp-select-wrap::after{content:"";position:absolute;right:10px;top:50%;width:6px;height:6px;margin-top:-4px;' +
+      'border-right:1.4px solid var(--dsw-alias-label-tertiary,#9a9a9a);border-bottom:1.4px solid var(--dsw-alias-label-tertiary,#9a9a9a);' +
+      'transform:rotate(45deg);pointer-events:none}' +
+      '.dqp-select{box-sizing:border-box;height:28px;min-width:136px;padding:0 28px 0 10px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'border-radius:var(--dsw-radius-sm,8px);background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.05));' +
+      'color:var(--dsw-alias-label-primary,#eee);font:inherit;font-size:12px;line-height:1;appearance:none;-webkit-appearance:none;cursor:pointer}' +
+      '.dqp-select:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08))}' +
+      '.dqp-select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
+      '.dqp-section{display:flex;flex-direction:column;gap:10px}' +
+      '.dqp-section-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px}' +
+      '.dqp-section-title{flex:1 1 auto;margin:0;font-size:13px;line-height:20px;font-weight:600}' +
       '.dqp-btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;padding:0 12px;' +
-      'border:.5px solid var(--dsw-alias-border-l2,#494949);' +
-      'border-radius:var(--dsw-radius-sm,8px);background:var(--dsw-alias-bg-layer-1,rgba(255,255,255,.04));' +
-      'color:var(--dsw-alias-label-primary,#eee);font:inherit;font-size:12px;line-height:1;cursor:pointer;' +
+      'border:.5px solid var(--dsw-alias-border-l2,#494949);border-radius:var(--dsw-radius-sm,8px);' +
+      'background:var(--dsw-alias-bg-layer-1,rgba(255,255,255,.04));color:var(--dsw-alias-label-primary,#eee);' +
+      'font:inherit;font-size:12px;line-height:1;cursor:pointer;' +
       'transition:background-color .12s ease,border-color .12s ease,color .12s ease}' +
       '.dqp-btn:not(.dqp-btn-primary):hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08))}' +
       '.dqp-btn:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
       '.dqp-btn-primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill,#4c6fff);' +
       'color:var(--dsw-alias-label-primary-foreground,#fff)}' +
       '.dqp-btn-primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,#3f5fe0)}' +
-      '.dqp-btn-danger{color:var(--dsw-alias-state-error-primary,#e35d5d)}' +
-      '.dqp-btn-warn{color:var(--dsw-alias-state-warn-primary,#e0a33a)}' +
-      '.dqp-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
-      'border-radius:var(--dsw-radius-md,10px);background:var(--dsw-alias-settings-card-fill,transparent)}' +
-      '.dqp-card-title{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
-      '.dqp-card-hint{font-size:12px;line-height:18px;color:var(--dsw-alias-label-caption,#7d7d7d)}' +
-      '.dqp-seg{display:inline-flex;align-self:flex-start;gap:2px;padding:2px;border-radius:var(--dsw-radius-sm,8px);' +
-      'background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.05))}' +
-      '.dqp-seg-item{box-sizing:border-box;height:26px;padding:0 12px;border:0;border-radius:6px;background:transparent;' +
-      'color:var(--dsw-alias-label-secondary,#b9b9b9);font:inherit;font-size:12px;line-height:1;cursor:pointer;' +
-      'transition:background-color .12s ease,color .12s ease}' +
-      '.dqp-seg-item:hover{color:var(--dsw-alias-label-primary,#eee)}' +
-      '.dqp-seg-item:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
-      '.dqp-seg-item-active{background:var(--dsw-alias-bg-base,#1a1a1a);color:var(--dsw-alias-label-primary,#eee);' +
-      'box-shadow:inset 0 0 0 .5px var(--dsw-alias-border-l3,#5a5a5a)}' +
-      '.dqp-list{display:flex;flex-direction:column;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
-      'border-radius:var(--dsw-radius-md,10px);background:var(--dsw-alias-settings-card-fill,transparent);overflow:hidden}' +
-      '.dqp-row{display:flex;align-items:flex-start;gap:10px;padding:12px;border-top:.5px solid var(--dsw-alias-border-l2,#494949)}' +
-      '.dqp-row:first-child{border-top:0}' +
-      '.dqp-order{display:flex;flex-direction:column;gap:2px;padding-top:2px}' +
-      '.dqp-order .dqp-btn{width:24px;height:22px;padding:0;font-size:11px;line-height:1}' +
+      '.dqp-btn-warn{color:var(--dsw-alias-state-warn-primary,#e0a33a);border-color:var(--dsw-alias-state-warn-primary,#e0a33a)}' +
+      '.dqp-list{display:flex;flex-direction:column;gap:8px}' +
+      '.dqp-row{display:flex;align-items:flex-start;gap:8px;padding:10px 12px 10px 6px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'border-radius:var(--dsw-radius-md,10px);background:var(--dsw-alias-settings-card-fill,transparent);' +
+      'transition:border-color .12s ease,box-shadow .12s ease,opacity .12s ease}' +
+      '.dqp-row:hover{border-color:var(--dsw-alias-border-l3,#5a5a5a)}' +
+      '.dqp-row-dragging{opacity:.45}' +
+      '.dqp-row-over{border-color:var(--dsw-alias-brand-primary,#4c6fff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#4c6fff)}' +
+      '.dqp-grip{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:28px;padding:0;' +
+      'border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-caption,#7d7d7d);font:inherit;font-size:13px;' +
+      'line-height:1;letter-spacing:-1px;cursor:grab;user-select:none}' +
+      '.dqp-grip:hover{color:var(--dsw-alias-label-secondary,#b9b9b9);background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}' +
+      '.dqp-grip:active{cursor:grabbing}' +
+      '.dqp-grip:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
+      '.dqp-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}' +
+      '.dqp-row-head{display:flex;align-items:center;gap:6px}' +
+      '.dqp-label-input{box-sizing:border-box;flex:1 1 auto;min-width:0;height:26px;padding:0 8px;border:.5px solid transparent;' +
+      'border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-primary,#eee);' +
+      'font:inherit;font-size:13px;font-weight:500;line-height:18px}' +
+      '.dqp-label-input:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.05))}' +
+      '.dqp-label-input:focus{outline:none;background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.04));' +
+      'border-color:var(--dsw-alias-brand-primary,#4c6fff)}' +
+      '.dqp-label-input::placeholder{color:var(--dsw-alias-label-caption,#7d7d7d);font-weight:400}' +
+      '.dqp-row-actions{display:flex;align-items:center;gap:2px;flex:0 0 auto}' +
+      '.dqp-icon{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;' +
+      'border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#9a9a9a);' +
+      'font:inherit;font-size:12px;line-height:1;cursor:pointer;transition:background-color .12s ease,color .12s ease}' +
+      '.dqp-icon:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08));color:var(--dsw-alias-label-primary,#eee)}' +
+      '.dqp-icon:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
+      '.dqp-icon:disabled{opacity:.35;cursor:default}' +
+      '.dqp-icon-danger:hover:not(:disabled){background:var(--dsw-alias-state-error-primary,#e35d5d);color:var(--dsw-alias-label-on-color,#fff)}' +
+      '.dqp-icon-confirm{width:auto;padding:0 6px;font-size:11px;color:var(--dsw-alias-state-error-primary,#e35d5d);' +
+      'background:transparent;box-shadow:inset 0 0 0 .5px var(--dsw-alias-state-error-primary,#e35d5d)}' +
+      '.dqp-textarea{box-sizing:border-box;width:100%;min-height:48px;padding:6px 8px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'border-radius:var(--dsw-radius-sm,8px);background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.03));' +
+      'color:var(--dsw-alias-label-primary,#eee);font:inherit;font-size:12px;line-height:18px;resize:vertical}' +
+      '.dqp-textarea:hover{border-color:var(--dsw-alias-border-l3,#5a5a5a)}' +
+      '.dqp-textarea:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#4c6fff)}' +
+      '.dqp-textarea::placeholder{color:var(--dsw-alias-label-caption,#7d7d7d)}' +
+      '.dqp-row-meta{display:flex;align-items:center;gap:8px;min-width:0;font-size:11px;line-height:16px;' +
+      'color:var(--dsw-alias-label-caption,#7d7d7d)}' +
+      '.dqp-preview{display:inline-flex;align-items:center;height:20px;max-width:240px;padding:0 8px;' +
+      'border:.5px solid var(--dsw-alias-border-l2,#494949);border-radius:999px;' +
+      'background:var(--dsw-alias-bg-layer-1,rgba(255,255,255,.04));color:var(--dsw-alias-label-secondary,#b9b9b9);' +
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.dqp-preview-empty{opacity:.55}' +
+      '.dqp-meta-grow{flex:1 1 auto}' +
+      '.dqp-empty{padding:28px 12px;text-align:center;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary,#9a9a9a)}' +
+      '.dqp-foot{margin:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-caption,#7d7d7d)}'
       '.dqp-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}' +
       '.dqp-field{display:flex;align-items:flex-start;gap:8px;min-width:0}' +
       '.dqp-field-name{flex:0 0 64px;padding-top:6px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary,#9a9a9a)}' +
@@ -636,146 +714,242 @@ window.__ModuleLoader__.load({
       var phrases = usePhrases(t)
       var placementNow = usePlacement()
       var clickNow = useClickMode()
-      var confirming = React.useState(false)
-      var isConfirming = confirming[0]
-      var setIsConfirming = confirming[1]
+
+      var resetState = React.useState(false)
+      var isResetting = resetState[0]
+      var setIsResetting = resetState[1]
+      var deleteState = React.useState(null)
+      var pendingDelete = deleteState[0]
+      var setPendingDelete = deleteState[1]
+      var dragState = React.useState(null)
+      var dragFrom = dragState[0]
+      var setDragFrom = dragState[1]
+      // The drop handler must see the drag source even before React re-renders.
+      var dragRef = React.useRef(null)
+      var dropState = React.useState(null)
+      var dragOver = dropState[0]
+      var setDragOver = dropState[1]
+      var focusState = React.useState(null)
+      var focusId = focusState[0]
+      var setFocusId = focusState[1]
+
+      // A pending delete forgets itself so a stray click cannot remove a phrase later.
+      React.useEffect(function () {
+        if (pendingDelete === null) return undefined
+        var timer = window.setTimeout(function () { setPendingDelete(null) }, 4000)
+        return function () { window.clearTimeout(timer) }
+      }, [pendingDelete])
+
+      React.useEffect(function () {
+        if (focusId !== null) setFocusId(null)
+      }, [focusId])
 
       function handleReset() {
-        if (!isConfirming) {
-          setIsConfirming(true)
+        if (!isResetting) {
+          setIsResetting(true)
           return
         }
-        setIsConfirming(false)
+        setIsResetting(false)
         resetPhrases(t)
       }
 
+      function handleAdd() {
+        var id = insertPhrase()
+        if (id !== null) setFocusId(id)
+      }
+
+      function handleDrop(index) {
+        var from = dragRef.current
+        if (from !== null) movePhraseTo(from, index)
+        endDrag()
+      }
+
+      function endDrag() {
+        dragRef.current = null
+        setDragFrom(null)
+        setDragOver(null)
+      }
+
       var rows = phrases.map(function (phrase, index) {
-        return h('div', { key: phrase.id, className: 'dqp-row' },
-          h('div', { className: 'dqp-order' },
-            h('button', {
-              type: 'button',
-              className: 'dqp-btn',
-              title: t('manager.moveUp'),
-              'aria-label': t('manager.moveUp'),
-              disabled: index === 0,
-              style: index === 0 ? { opacity: 0.4, cursor: 'default' } : null,
-              onClick: function () { movePhrase(index, -1) },
-            }, '↑'),
-            h('button', {
-              type: 'button',
-              className: 'dqp-btn',
-              title: t('manager.moveDown'),
-              'aria-label': t('manager.moveDown'),
-              disabled: index === phrases.length - 1,
-              style: index === phrases.length - 1 ? { opacity: 0.4, cursor: 'default' } : null,
-              onClick: function () { movePhrase(index, 1) },
-            }, '↓'),
-          ),
-          h('div', { className: 'dqp-fields' },
-            h('div', { className: 'dqp-field' },
-              h('span', { className: 'dqp-field-name' }, t('manager.label')),
-              h('input', {
-                type: 'text',
-                className: 'dqp-input',
-                value: phrase.label,
-                placeholder: t('manager.labelPlaceholder'),
-                spellCheck: false,
-                onChange: function (event) { updatePhrase(index, { label: event.target.value }) },
-              }),
-            ),
-            h('div', { className: 'dqp-field' },
-              h('span', { className: 'dqp-field-name' }, t('manager.text')),
-              h('textarea', {
-                className: 'dqp-input dqp-textarea',
-                value: phrase.text,
-                rows: 2,
-                placeholder: t('manager.textPlaceholder'),
-                spellCheck: false,
-                onChange: function (event) { updatePhrase(index, { text: event.target.value }) },
-              }),
-            ),
-          ),
+        var deleting = pendingDelete === phrase.id
+        var isDragging = dragFrom === index
+        var isDropTarget = dragOver === index && dragFrom !== null && dragFrom !== index
+        // Rough height hint: one row per line, plus one per ~72 characters.
+        var textRows = phrase.text === ''
+          ? 2
+          : Math.min(8, Math.max(2, phrase.text.split('\n').length + Math.floor(phrase.text.length / 72)))
+
+        return h('div', {
+          key: phrase.id,
+          className: 'dqp-row' + (isDragging ? ' dqp-row-dragging' : '') + (isDropTarget ? ' dqp-row-over' : ''),
+          onDragOver: function (event) {
+            event.preventDefault()
+            if (dragFrom !== null) setDragOver(index)
+          },
+          onDragLeave: function () {
+            if (dragOver === index) setDragOver(null)
+          },
+          onDrop: function (event) {
+            event.preventDefault()
+            handleDrop(index)
+          },
+        },
           h('button', {
             type: 'button',
-            className: 'dqp-btn dqp-btn-danger',
-            title: t('manager.delete'),
-            'aria-label': t('manager.delete'),
-            onClick: function () { removePhrase(index) },
-          }, '✕'),
+            className: 'dqp-grip',
+            draggable: true,
+            title: t('manager.drag'),
+            'aria-label': t('manager.drag'),
+            onDragStart: function (event) {
+              dragRef.current = index
+              setDragFrom(index)
+              if (event && event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move'
+                // Firefox only starts a drag when the payload is set.
+                try { event.dataTransfer.setData('text/plain', phrase.id) } catch (error) { /* ignore */ }
+              }
+            },
+            onDragEnd: endDrag,
+          }, '\u283f'),
+
+          h('div', { className: 'dqp-body' },
+            h('div', { className: 'dqp-row-head' },
+              h('input', {
+                type: 'text',
+                className: 'dqp-label-input',
+                value: phrase.label,
+                placeholder: t('manager.labelPlaceholder'),
+                'aria-label': t('manager.label'),
+                spellCheck: false,
+                autoFocus: focusId === phrase.id,
+                onChange: function (event) { updatePhrase(index, { label: event.target.value }) },
+              }),
+              h('div', { className: 'dqp-row-actions' },
+                h('button', {
+                  type: 'button',
+                  className: 'dqp-icon',
+                  title: t('manager.moveUp'),
+                  'aria-label': t('manager.moveUp'),
+                  disabled: index === 0,
+                  onClick: function () { movePhrase(index, -1) },
+                }, '\u2191'),
+                h('button', {
+                  type: 'button',
+                  className: 'dqp-icon',
+                  title: t('manager.moveDown'),
+                  'aria-label': t('manager.moveDown'),
+                  disabled: index === phrases.length - 1,
+                  onClick: function () { movePhrase(index, 1) },
+                }, '\u2193'),
+                h('button', {
+                  type: 'button',
+                  className: 'dqp-icon dqp-icon-danger' + (deleting ? ' dqp-icon-confirm' : ''),
+                  title: deleting ? t('manager.deleteConfirm') : t('manager.delete'),
+                  'aria-label': deleting ? t('manager.deleteConfirm') : t('manager.delete'),
+                  onClick: function () {
+                    if (!deleting) {
+                      setPendingDelete(phrase.id)
+                      return
+                    }
+                    setPendingDelete(null)
+                    removePhrase(index)
+                  },
+                }, deleting ? t('manager.deleteShort') : '\u2715'),
+              ),
+            ),
+
+            h('textarea', {
+              className: 'dqp-textarea',
+              value: phrase.text,
+              rows: textRows,
+              placeholder: t('manager.textPlaceholder'),
+              'aria-label': t('manager.text'),
+              spellCheck: false,
+              onChange: function (event) { updatePhrase(index, { text: event.target.value }) },
+            }),
+
+            h('div', { className: 'dqp-row-meta' },
+              h('span', null, t('manager.preview')),
+              h('span', {
+                className: 'dqp-preview' + (phraseCaption(phrase) === '' ? ' dqp-preview-empty' : ''),
+                title: phrase.text,
+              }, phraseCaption(phrase) || t('manager.untitled')),
+              h('span', { className: 'dqp-meta-grow' }),
+              h('span', null, t('manager.chars').replace('{n}', String(phrase.text.length))),
+            ),
+          ),
         )
       })
 
-      var placementCard = h('div', { className: 'dqp-card' },
-        h('span', { className: 'dqp-card-title' }, t('manager.placement')),
-        h('div', {
-          className: 'dqp-seg',
-          role: 'radiogroup',
-          'aria-label': t('manager.placement'),
-        },
-        PLACEMENTS.map(function (item) {
-          var active = placementNow === item.value
-          return h('button', {
-            key: item.value,
-            type: 'button',
-            role: 'radio',
-            'aria-checked': active ? 'true' : 'false',
-            className: 'dqp-seg-item' + (active ? ' dqp-seg-item-active' : ''),
-            onClick: function () { setPlacement(item.value) },
-          }, t(item.key))
-        }),
+      var placementOption = h('div', { className: 'dqp-option' },
+        h('div', { className: 'dqp-option-text' },
+          h('label', { className: 'dqp-option-label', htmlFor: 'dqp-placement' }, t('manager.placement')),
+          h('span', { className: 'dqp-option-hint' }, t('manager.placementHint')),
         ),
-        h('span', { className: 'dqp-card-hint' }, t('manager.placementHint')),
+        h('div', { className: 'dqp-select-wrap' },
+          h('select', {
+            id: 'dqp-placement',
+            className: 'dqp-select',
+            value: placementNow,
+            onChange: function (event) { setPlacement(event.target.value) },
+          },
+          PLACEMENTS.map(function (item) {
+            return h('option', { key: item.value, value: item.value }, t(item.key))
+          }),
+          ),
+        ),
       )
 
-      var clickCard = h('div', { className: 'dqp-card' },
-        h('span', { className: 'dqp-card-title' }, t('manager.clickMode')),
-        h('div', {
-          className: 'dqp-seg',
-          role: 'radiogroup',
-          'aria-label': t('manager.clickMode'),
-        },
-        CLICK_MODES.map(function (value) {
-          var active = clickNow === value
-          return h('button', {
-            key: value,
-            type: 'button',
-            role: 'radio',
-            'aria-checked': active ? 'true' : 'false',
-            className: 'dqp-seg-item' + (active ? ' dqp-seg-item-active' : ''),
-            onClick: function () { setClickMode(value) },
-          }, t(value === 'send' ? 'manager.clickSend' : 'manager.clickInsert'))
-        }),
+      var clickOption = h('div', { className: 'dqp-option' },
+        h('div', { className: 'dqp-option-text' },
+          h('label', { className: 'dqp-option-label', htmlFor: 'dqp-click' }, t('manager.clickMode')),
+          h('span', { className: 'dqp-option-hint' }, t('manager.clickHint')),
         ),
-        h('span', { className: 'dqp-card-hint' }, t('manager.clickHint')),
+        h('div', { className: 'dqp-select-wrap' },
+          h('select', {
+            id: 'dqp-click',
+            className: 'dqp-select',
+            value: clickNow,
+            onChange: function (event) { setClickMode(event.target.value) },
+          },
+          CLICK_MODES.map(function (value) {
+            return h('option', { key: value, value: value }, t(value === 'send' ? 'manager.clickSend' : 'manager.clickInsert'))
+          }),
+          ),
+        ),
       )
 
       return h('div', { className: 'dqp-page' },
         h('style', null, MANAGER_CSS),
         h('div', { className: 'dqp-inner' },
-          h('div', { className: 'dqp-bar' },
-            h('h2', { className: 'dqp-title', style: { flex: '1 1 auto', margin: 0 } }, t('section.title')),
-            h('span', { className: 'dqp-badge' }, String(phrases.length)),
+          h('div', { className: 'dqp-head' },
+            h('div', { className: 'dqp-head-text' },
+              h('h2', { className: 'dqp-title' }, t('section.title')),
+              h('p', { className: 'dqp-desc' }, t('section.description')),
+            ),
+            h('span', { className: 'dqp-badge' }, t('manager.count').replace('{n}', String(phrases.length))),
           ),
-          h('p', { className: 'dqp-desc' }, t('section.description')),
-          placementCard,
-          clickCard,
-          h('div', { className: 'dqp-bar' },
-            h('button', {
-              type: 'button',
-              className: 'dqp-btn dqp-btn-primary',
-              onClick: insertPhrase,
-            }, t('manager.add')),
-            h('button', {
-              type: 'button',
-              className: 'dqp-btn' + (isConfirming ? ' dqp-btn-warn' : ''),
-              onClick: handleReset,
-            }, isConfirming ? t('manager.resetConfirm') : t('manager.reset')),
+          h('div', { className: 'dqp-options' }, placementOption, clickOption),
+          h('div', { className: 'dqp-section' },
+            h('div', { className: 'dqp-section-head' },
+              h('h3', { className: 'dqp-section-title' }, t('manager.phrases')),
+              h('button', {
+                type: 'button',
+                className: 'dqp-btn' + (isResetting ? ' dqp-btn-warn' : ''),
+                onClick: handleReset,
+              }, isResetting ? t('manager.resetConfirm') : t('manager.reset')),
+              h('button', {
+                type: 'button',
+                className: 'dqp-btn dqp-btn-primary',
+                onClick: handleAdd,
+              }, '+ ' + t('manager.add')),
+            ),
+            rows.length > 0
+              ? h('div', { className: 'dqp-list' }, rows)
+              : h('div', { className: 'dqp-list' },
+                  h('div', { className: 'dqp-empty' }, t('manager.empty')),
+                ),
           ),
-          rows.length > 0
-            ? h('div', { className: 'dqp-list' }, rows)
-            : h('div', { className: 'dqp-list' },
-                h('div', { className: 'dqp-empty' }, t('manager.empty')),
-              ),
           h('p', { className: 'dqp-foot' }, t('manager.savedHint') + ' ' + t('manager.tip')),
         ),
       )

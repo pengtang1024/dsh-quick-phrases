@@ -25,16 +25,21 @@ All three rows stay registered, but only the selected one renders — switching 
 
 ## Managing phrases
 
-Open **Settings → Quick phrases**:
+Open **Settings → Quick phrases**. The page has two layers: behaviour options on top, the phrase list below.
 
-- **Add phrase**: appends an empty entry; fill in the two fields.
-- **Label**: the text on the button, can be shorter than the text.
-- **Text**: what actually gets sent, may span several lines.
-- **↑ / ↓**: reorder; the list order is the left-to-right order in the row.
-- **✕**: delete the entry.
-- **Restore defaults**: first click arms, second click restores the four built-in phrases.
+**Behaviour options** (two dropdowns, applied on selection):
+
 - **Position**: switch between the three positions above.
 - **On click**: pick "Send right away" or "Fill the composer"; the default is sending right away.
+
+**Phrase list** (one card per phrase):
+
+- **Drag to reorder**: grab the handle on the left and drop the card where it belongs; the **↑ / ↓** buttons move it one step at a time. The list order is the left-to-right order in the row.
+- **Label**: the top line of the card is the button caption — edit it in place.
+- **Text**: the large field below, multi-line.
+- **Chip preview**: each card shows the resulting chip and its character count, so a too-wide label is obvious before you send anything.
+- **✕**: the first click only arms the delete ("Confirm"), a second click within four seconds removes the phrase.
+- **Add phrase** appends an empty card and focuses its caption; **Restore defaults** arms on the first click and restores the four built-in phrases on the second.
 
 Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
 

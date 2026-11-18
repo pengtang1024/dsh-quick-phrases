@@ -166,6 +166,9 @@ function byClass(tree, className) {
   )
 }
 
+const selectById = (tree, id) =>
+  walk(tree).filter((n) => n.type === 'select' && n.props.id === id)[0]
+
 const buttonByText = (tree, text) => {
   const hit = walk(tree).find(
     (n) => n.type === 'button' && textOf(n).trim() === text,
@@ -227,18 +230,15 @@ assert.ok(
 const clickStored = () => localStorage.getItem('dsh.quick-phrases.click.v1')
 assert.equal(clickStored(), null, 'no click mode stored before the first switch')
 
-const clickSegs = (tree) =>
-  walk(tree).filter(
-    (n) =>
-      n.type === 'button' &&
-      String(n.props.className ?? '').includes('dqp-seg-item') &&
-      [t('manager.clickSend'), t('manager.clickInsert')].includes(textOf(n).trim()),
-  )
-
 let clickTree = render('manager', sectionReg.component, { t })
-let clickItems = clickSegs(clickTree)
-assert.equal(clickItems.length, 2, 'two click behaviours are offered')
-assert.equal(clickItems[0].props['aria-checked'], 'true', 'sending right away is the default')
+let clickPicker = selectById(clickTree, 'dqp-click')
+assert.ok(clickPicker, 'the click behaviour is a dropdown')
+assert.equal(clickPicker.props.value, 'send', 'sending right away is the default')
+assert.deepEqual(
+  walk(clickPicker).filter((n) => n.type === 'option').map((n) => textOf(n)),
+  [t('manager.clickSend'), t('manager.clickInsert')],
+  'two click behaviours are offered',
+)
 
 // A non-empty draft must never be thrown away: the phrase goes to the caret.
 const draftProps = {
@@ -255,7 +255,7 @@ assert.deepEqual(inserted, ['提交改动并推送到远端'], 'the phrase is in
 assert.deepEqual(written, [], 'the typed draft is not replaced')
 
 // Fill-only mode: still no submit even with an empty composer.
-clickItems[1].props.onClick()
+clickPicker.props.onChange({ target: { value: 'fill' } })
 assert.equal(clickStored(), 'fill', 'choosing fill-only persists it')
 submitted.length = 0
 inserted.length = 0
@@ -266,8 +266,8 @@ assert.equal(submitted.length, 0, 'fill-only never submits')
 assert.deepEqual(inserted, [t('default.continue.text')], 'fill-only inserts the sent text')
 
 // Back to the default for the sections below.
-clickItems = clickSegs(render('manager', sectionReg.component, { t }))
-clickItems[0].props.onClick()
+clickPicker = selectById(render('manager', sectionReg.component, { t }), 'dqp-click')
+clickPicker.props.onChange({ target: { value: 'send' } })
 assert.equal(clickStored(), 'send', 'the click behaviour can be switched back')
 
 /* ---------------- placement: one row, moved between composer slots ---------------- */
@@ -279,23 +279,17 @@ assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').leng
 assert.equal(render('top', topReg.component, dockProps), null, 'the above-composer row stays hidden by default')
 assert.equal(render('tool', toolReg.component, dockProps), null, 'the tool-row row stays hidden by default')
 
-function segButtons(tree) {
-  const labels = [t('manager.placementDock'), t('manager.placementTop'), t('manager.placementTool')]
-  return walk(tree).filter(
-    (n) =>
-      n.type === 'button' &&
-      String(n.props.className ?? '').includes('dqp-seg-item') &&
-      labels.includes(textOf(n).trim()),
-  )
-}
-
 let placementTree = render('manager', sectionReg.component, { t })
-let segs = segButtons(placementTree)
-assert.equal(segs.length, 3, 'three positions are offered')
-assert.equal(segs[0].props['aria-checked'], 'true', 'the first position is selected by default')
-assert.equal(textOf(segs[0]).trim(), t('manager.placementDock'))
+let placementPicker = selectById(placementTree, 'dqp-placement')
+assert.ok(placementPicker, 'the position is a dropdown')
+assert.equal(placementPicker.props.value, 'composer-dock', 'the first position is selected by default')
+assert.deepEqual(
+  walk(placementPicker).filter((n) => n.type === 'option').map((n) => textOf(n)),
+  [t('manager.placementDock'), t('manager.placementTop'), t('manager.placementTool')],
+  'three positions are offered',
+)
 
-segs[1].props.onClick()
+placementPicker.props.onChange({ target: { value: 'input-dock' } })
 assert.equal(placementStored(), 'input-dock', 'switching position persists it')
 assert.equal(render('dock', dockReg.component, dockProps), null, 'the old row disappears')
 const topTree = render('top', topReg.component, dockProps)
@@ -306,9 +300,9 @@ assert.ok(
 )
 
 placementTree = render('manager', sectionReg.component, { t })
-segs = segButtons(placementTree)
-assert.equal(segs[1].props['aria-checked'], 'true', 'the manager reflects the stored position')
-segs[2].props.onClick()
+placementPicker = selectById(placementTree, 'dqp-placement')
+assert.equal(placementPicker.props.value, 'input-dock', 'the manager reflects the stored position')
+placementPicker.props.onChange({ target: { value: 'tool-right' } })
 assert.equal(placementStored(), 'tool-right', 'the tool-row position persists')
 const toolTree = render('tool', toolReg.component, dockProps)
 assert.ok(
@@ -318,8 +312,8 @@ assert.ok(
 assert.equal(byClass(toolTree, 'dqp-chip').length, 5)
 
 // Back to the default so the CRUD assertions below read the dock row.
-segs = segButtons(render('manager', sectionReg.component, { t }))
-segs[0].props.onClick()
+placementPicker = selectById(render('manager', sectionReg.component, { t }), 'dqp-placement')
+placementPicker.props.onChange({ target: { value: 'composer-dock' } })
 assert.equal(placementStored(), 'composer-dock', 'the position can be switched back')
 assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 5)
 
@@ -351,22 +345,53 @@ const textarea = walk(rows[0]).filter((n) => n.type === 'textarea')[0]
 textarea.props.onChange({ target: { value: '继续，按原计划推进' } })
 assert.equal(stored()[0].text, '继续，按原计划推进', 'text edits persist separately from the label')
 
-click(rows[1], 'dqp-btn', 0) // ↑ on the second row
+click(rows[1], 'dqp-icon', 0) // ↑ on the second row
 assert.deepEqual(
   stored().slice(0, 2).map((p) => p.label),
   ['提交', '继续吧'],
   'move up swaps order',
 )
 
+// The edited row shows a live chip preview and a character count.
 managerTree = render('manager', sectionReg.component, { t })
-click(rowsOf(managerTree).at(-1), 'dqp-btn-danger') // delete last
-assert.equal(stored().length, 4, 'delete removes the row')
+const firstRow = rowsOf(managerTree)[0]
+const preview = walk(firstRow).find((n) => String(n.props?.className ?? '').includes('dqp-preview'))
+assert.ok(preview, 'each row previews its chip caption')
+assert.equal(textOf(preview), '提交', 'the preview uses the stored label')
+assert.ok(
+  textOf(firstRow).includes(t('manager.chars').replace('{n}', String(stored()[0].text.length))),
+  'the row reports the sent-text length',
+)
+
+// Drag-and-drop reorder: grab the last row's grip and drop it on the first row.
+managerTree = render('manager', sectionReg.component, { t })
+let dragRows = rowsOf(managerTree)
+const grip = walk(dragRows[3]).find((n) => String(n.props?.className ?? '') === 'dqp-grip')
+assert.ok(grip && grip.props.draggable === true, 'each row has a drag handle')
+grip.props.onDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } })
+dragRows[0].props.onDrop({ preventDefault() {} })
+assert.equal(stored().at(0).label, '发版', 'dropping a row on the first position moves it there')
+
+// Delete is a two-step action, so a stray click cannot drop a phrase.
+managerTree = render('manager', sectionReg.component, { t })
+const lastRow = rowsOf(managerTree).at(-1)
+lastRow.props.onDrop // keep the row shape stable across renders
+const beforeDelete = stored().length
+click(lastRow, 'dqp-icon-danger')
+assert.equal(stored().length, beforeDelete, 'the first click only arms the delete')
+const armed = render('manager', sectionReg.component, { t })
+assert.ok(
+  walk(armed).some((n) => n.type === 'button' && textOf(n).trim() === t('manager.deleteShort')),
+  'the armed row asks for confirmation',
+)
+click(rowsOf(armed).at(-1), 'dqp-icon-danger')
+assert.equal(stored().length, beforeDelete - 1, 'the second click removes the row')
 
 /* ---------------- dock reflects the edited list ---------------- */
 
 const dockTree3 = render('dock', dockReg.component, dockProps)
 const labels = byClass(dockTree3, 'dqp-chip').slice(0, 4).map((c) => textOf(c))
-assert.deepEqual(labels, ['提交', '继续吧', '推送', '发版'], 'dock order follows the list')
+assert.deepEqual(labels, ['发版', '提交', '继续吧', '推送'], 'dock order follows the list')
 
 /* ---------------- restore defaults ---------------- */
 

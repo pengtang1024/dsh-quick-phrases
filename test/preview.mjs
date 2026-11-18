@@ -4,6 +4,7 @@
 //
 //   node test/preview.mjs            # writes /tmp/dqp-{dark,light}.html
 //   node test/preview.mjs --shot     # also screenshots with headless chromium
+import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -192,14 +193,15 @@ ${managerHtml}
   // Only the selected placement renders, so switch it through the manager's own
   // control instead of poking at module state.
   const managerTree = render('preview-manager', managerReg.component, { t })
-  const segButtons = []
+  let placementSelect = null
   ;(function walk(node) {
     if (node == null || typeof node !== 'object') return
     if (Array.isArray(node)) return node.forEach(walk)
-    if (String(node.props?.className ?? '').includes('dqp-seg-item')) segButtons.push(node)
+    if (node.type === 'select' && node.props?.id === 'dqp-placement') placementSelect = node
     ;(node.children ?? []).forEach(walk)
   })(managerTree)
-  segButtons[1].props.onClick()
+  assert.ok(placementSelect, 'the manager offers a position dropdown')
+  placementSelect.props.onChange({ target: { value: 'input-dock' } })
   const topHtml = serialize(render('top', topReg.component, props))
   // The real InputBar card is `width:100%; max-width: var(--dsh-composer-card-max-width)`.
   const CARD = `<div style="width:100%;max-width:var(--dsh-composer-card-max-width);

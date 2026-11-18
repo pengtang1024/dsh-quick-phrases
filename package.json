@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-quick-phrases",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Quick phrase chips under the composer with a managed phrase list (label and sent text are separate).",
   "license": "MIT",

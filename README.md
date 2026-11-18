@@ -11,6 +11,8 @@
 
 ![短语行](docs/images/row-dark.png)
 
+> 文档里的截图都是**界面示意图**：由 `test/preview.mjs` 把真实组件套上宿主主题 token 渲染出来，不是真机截屏。实际观感以运行中的界面为准。
+
 ## 功能
 
 - **一排短语按钮**：显示名称与发送内容分离，默认四条：继续 / 提交 / 推送 / 发版。
@@ -53,17 +55,17 @@ Plugins → Add plugin → 选择本仓库目录；或让 DSH 里的 agent 执�
 
 | 位置 | 插槽 | 说明 |
 | --- | --- | --- |
-| 输入框下方（默认） | `conversation.composer.dock` | 常驻在输入卡片下方的一整行，最宽松。 |
+| 输入框下方（默认） | `conversation.composer.dock` | 常驻在输入卡片下方的一整行，最宽松；同样与卡片内边对齐。 |
 | 输入框上方 | `conversation.input.dock` | 卡片上方一整行；宽度与居中按宿主 dock 几何计算，和卡片文字内边对齐。 |
 | 工具行右侧 | `conversation.input.right` | 挤进输入框底部工具行；空间有限，超出部分横向滚动。 |
 
-![输入框上方](docs/images/above-composer-dark.png)
+![输入框上方（示意图）](docs/images/above-composer-dark.png)
 
 ### 管理页
 
 设置 → **快捷短语**：上面两个下拉框决定位置与点按行为，下面一条短语一张卡片。
 
-![管理页（深色）](docs/images/manager-dark.png)
+![管理页（示意图 · 深色）](docs/images/manager-dark.png)
 
 - 拖动左侧 `⠿` 手柄排序，或用 `↑` / `↓` 一格一格挪；列表顺序就是按钮的从左到右顺序。
 - 卡片顶部那行是**显示名称**，直接点进去改；下面大框是**发送内容**。

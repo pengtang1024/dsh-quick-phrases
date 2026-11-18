@@ -154,7 +154,6 @@ const themeCss = fs.existsSync(THEME_CSS)
   ? fs.readFileSync(THEME_CSS, 'utf8')
   : '/* theme tokens not found — set DQP_ASAR to the host app.asar node_modules/@deepseek-ai */'
 const managerHtml = serialize(render('manager', manager, { t }))
-const dockHtml = serialize(render('dock', dock, { t, inputActions: { setDraft() {} }, openManager: () => true }))
 
 const PAGE_CSS = `
   html, body { margin: 0; padding: 0; }
@@ -171,12 +170,10 @@ const PAGE_CSS = `
 
 for (const dark of [true, false]) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}</style></head>
-<body${dark ? ' data-ds-dark-theme' : ''}><div class="stage">
-<p class="stage-label">settings.section — 管理页（${dark ? '深色' : '浅色'}）</p>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="stage-label">界面示意图 · 管理页（${dark ? '深色' : '浅色'}）</p>
+<div class="stage">
 ${managerHtml}
-</div><div class="stage">
-<p class="stage-label">conversation.composer.dock — 短语行</p>
-<div style="background:var(--dsw-alias-bg-layer-1,#222);border-radius:12px;padding:10px 12px">${dockHtml}</div>
 </div></body></html>`
   const file = '/tmp/dqp-' + (dark ? 'dark' : 'light') + '.html'
   fs.writeFileSync(file, html)
@@ -232,14 +229,14 @@ ${managerHtml}
   const stackCss = `
     .col { width: 900px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px;
       --dsh-composer-card-max-width: 700px; --dsh-composer-side-clearance: 16px; --dsh-composer-dock-inset: 8px;
-      padding: 10px 0; outline: 1px dashed rgba(128,128,128,.3); }
+      padding: 10px 0; }
     .col-label { font-size: 11px; color: var(--dsw-alias-label-caption,#7d7d7d); }
   `
   const page = (dark) => `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}${stackCss}</style></head>
 <body${dark ? ' data-ds-dark-theme' : ''}>
-<p class="stage-label">输入框下方（当前默认）</p>
-<div class="col">${dockHtml2}${CARD}</div>
-<p class="stage-label">输入框上方（inset 对齐卡片）</p>
+<p class="stage-label">界面示意图 · 输入框下方（当前默认）</p>
+<div class="col">${CARD}${dockHtml2}</div>
+<p class="stage-label">界面示意图 · 输入框上方（inset 对齐卡片）</p>
 <div class="col">${topHtml}${CARD}</div>
 </body></html>`
   for (const dark of [true, false]) {
@@ -251,8 +248,8 @@ ${managerHtml}
 
 if (process.argv.includes('--shot')) {
   const shots = [
-    ['/tmp/dqp-dark.html', '/tmp/dqp-dark.png', '780,820'],
-    ['/tmp/dqp-light.html', '/tmp/dqp-light.png', '780,820'],
+    ['/tmp/dqp-dark.html', '/tmp/dqp-dark.png', '760,1190'],
+    ['/tmp/dqp-light.html', '/tmp/dqp-light.png', '760,1190'],
     ['/tmp/dqp-chips-dark.html', '/tmp/dqp-chips-dark.png', '700,180'],
     ['/tmp/dqp-chips-light.html', '/tmp/dqp-chips-light.png', '700,180'],
     ['/tmp/dqp-stack-dark.html', '/tmp/dqp-stack-dark.png', '980,460'],

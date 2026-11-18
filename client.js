@@ -37,7 +37,7 @@ window.__ModuleLoader__.load({
      * row moves between slots without an extra round of registration.
      */
     var PLACEMENTS = [
-      { slot: 'conversation.composer.dock', value: 'composer-dock', tag: 'dock', order: DOCK_ORDER, compact: false, key: 'manager.placementDock' },
+      { slot: 'conversation.composer.dock', value: 'composer-dock', tag: 'dock', order: DOCK_ORDER, compact: false, inset: true, key: 'manager.placementDock' },
       // `dock` rows live in the composer stack, whose children stretch to the
       // whole column; the card itself is narrower. `inset: true` copies the
       // host's own dock geometry (QueueDock/TodoPanel) so the row lines up with

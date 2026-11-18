@@ -91,7 +91,7 @@ margin: 0 auto;
 
 `test/smoke.mjs` 把真实的 `client.js` 放进 `vm` 沙箱，用最小假 React（按组件名分配 hook 单元）和假 ModuleLoader 跑起来，直接调组件自己的 `onClick` / `onChange`，断言落在 `localStorage` 和渲染树上的结果。改行为时先改这里——它是唯一能在没有宿主的情况下验证「显示与发送分离」「位置切换」「拖动排序」是否还成立的护栏。
 
-`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题。
+`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题。`docs/images/` 下的图就是它产出的**界面示意图**（图内带「界面示意图」标题），不是真机截屏。
 
 ## 兼容性注意
 

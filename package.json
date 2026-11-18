@@ -1,6 +1,6 @@
 {
   "name": "dsh-quick-phrases",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "DSH 快捷短语：输入框旁一排短语按钮，点按即发送；管理页可增删改、拖动排序，显示名称与发送内容分离，显示位置可选。",
   "license": "MIT",
   "author": {

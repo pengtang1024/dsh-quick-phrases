@@ -273,6 +273,12 @@ const placementStored = () => localStorage.getItem('dsh.quick-phrases.placement.
 
 assert.equal(placementStored(), null, 'nothing stored before the first switch')
 assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length === 5, 'default position is under the composer')
+assert.ok(
+  walk(render('dock-default', dockReg.component, dockProps)).some(
+    (n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-inset',
+  ),
+  'the below-composer row copies the host dock geometry so it lines up with the card',
+)
 assert.equal(render('top', topReg.component, dockProps), null, 'the above-composer row stays hidden by default')
 assert.equal(render('tool', toolReg.component, dockProps), null, 'the tool-row row stays hidden by default')
 

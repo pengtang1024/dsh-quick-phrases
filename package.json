@@ -1,8 +1,7 @@
 {
-  "name": "@local/dsh-quick-phrases",
-  "version": "0.3.2",
-  "private": true,
-  "description": "Quick phrase chips under the composer with a managed phrase list (label and sent text are separate).",
+  "name": "dsh-quick-phrases",
+  "version": "0.3.4",
+  "description": "DSH 快捷短语：输入框旁一排短语按钮，点按即发送；管理页可增删改、拖动排序，显示名称与发送内容分离，显示位置可选。",
   "license": "MIT",
   "author": {
     "name": "pengtang1024",
@@ -21,12 +20,13 @@
     "dsh-plugin",
     "deepseek-harness",
     "quick-phrases",
-    "composer",
-    "chips",
+    "quick-reply",
+    "canned-responses",
     "productivity"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": "^0.2.2-rc.3"
   },
   "type": "module",
   "exports": {
@@ -55,5 +55,9 @@
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   }
 }

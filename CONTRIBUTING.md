@@ -93,6 +93,53 @@ docs: 补充本地开发与测试说明
 4. 界面改动附深色 / 浅色截图；行为或存储变更说明旧数据如何兼容。
 5. CI 绿、评审通过后再合并；合并前作者自己再跑一遍 smoke。
 
+## 发布流程
+
+本插件按「npm 包 + 插件市场索引」两条线发布，缺一条外面就看不到新版本。
+
+1. **定版本与日志**：`feat` → minor，`fix` / `docs` / `chore` → patch（只改文档也切 patch）；`package.json` 的 `version` 与 `CHANGELOG.md` 的条目一起改。
+2. **过门禁**：
+
+   ```bash
+   node --check client.js
+   node --check index.js
+   node test/smoke.mjs
+   node -e "for (const f of ['package.json','locale/zh.json','locale/en.json']) JSON.parse(require('fs').readFileSync(f,'utf8'))"
+   ```
+
+3. **发布到 npm**：`npm publish`（`publishConfig` 已固定 `registry.npmjs.org` 与 public，不需要额外参数）。发布后等 registry 处理完再核对：
+
+   ```bash
+   npm view dsh-quick-phrases version dist-tags
+   ```
+
+   注意刚发布的一两分钟内 `npm view` 可能返回 `0.0.0-stage` 占位版本，属正常过程，等 registry 换成真实版本再看。
+
+4. **更新 `index.json`**：把新版本追加/更新到 `plugins[0].versions`——`version`、真实的 `publishTimestamp`（registry 的 `time` 字段转 epoch 秒）、`source: { "type": "npm" }`、`engines.dsh`。`icon` 用 jsDelivr 的 `@main` 地址，不用每次改。
+
+5. **校验索引**（用 DSH 自带的 format-1 校验器，路径按本机安装调整）：
+
+   ```bash
+   ELECTRON_RUN_AS_NODE=1 "<DSH 安装目录>/dsh-desktop-next" --input-type=module -e "
+   import fs from 'node:fs'
+   const m = await import('file:///<DSH 安装目录>/resources/app.asar/node_modules/@deepseek-ai/dsh-plugin-market-index/lib/index.js')
+   const idx = m.parseMarketIndex(JSON.parse(fs.readFileSync('index.json','utf8')), 'https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json')
+   console.log('VALID', idx.format, idx.plugins[0].name, m.marketInstallTarget(idx.plugins[0].name, idx.plugins[0].versions[0]))
+   "
+   ```
+
+   期望输出 `VALID 1 dsh-quick-phrases { spec: 'dsh-quick-phrases@<版本>' }`；校验器报错会带出错的 JSON 路径。
+
+6. **提交、打 tag、发 Release**：`git add` 精确到文件 → `git commit`（`chore(release): X.Y.Z` 或对应 type）→ `git tag -a vX.Y.Z` → 推 `main` 与 tag → `gh release create`。
+
+7. **复核分发**：
+
+   ```bash
+   curl -fsS https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json | head -c 200
+   ```
+
+   jsDelivr 对 `@main` 有缓存，推完可能还是旧内容，可用 `https://purge.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json` 主动刷新；之后在 DSH 里 **Plugins → Discover** 搜到新版本即为发布完成。
+
 ## 代码约定
 
 - **纯 JS，无构建**：`client.js` 由宿主直接加载，跟随文件现有写法（保守语法、`var` / 函数声明），不要引入 TypeScript、打包器或 npm 运行时依赖。

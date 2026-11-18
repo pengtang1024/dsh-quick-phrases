@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/pengtang1024/dsh-quick-phrases/actions/workflows/ci.yml/badge.svg)](https://github.com/pengtang1024/dsh-quick-phrases/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/pengtang1024/dsh-quick-phrases)](https://github.com/pengtang1024/dsh-quick-phrases/releases)
+[![npm](https://img.shields.io/npm/v/dsh-quick-phrases?logo=npm)](https://www.npmjs.com/package/dsh-quick-phrases)
 [![License: MIT](https://img.shields.io/github/license/pengtang1024/dsh-quick-phrases)](LICENSE)
 
 给 DeepSeek Harness（DSH）的输入框加一排快捷短语按钮：`继续`、`提交`、`推送`、`发版` 这类天天要打的字，点一下就送进输入框或直接发出。按钮上显示的**名称**和真正发出的**内容**分开编辑，所以按钮可以很短，话可以很长。
@@ -20,17 +21,31 @@
 
 ## 安装
 
-前置：DSH 桌面端或 Web 端（0.2.2 及以上）。插件是本地目录 bundle，无需构建、无需 `npm install`。
+前置：DSH 桌面端或 Web 端（0.2.2 及以上）。插件没有运行时依赖，也没有构建步骤。
 
-**方式 A（图形界面）**：Plugins → Add plugin → 选择本仓库目录。
+**方式 A（npm，推荐）**
 
-**方式 B（命令行）**：让 DSH 里的 agent 执行
-
-```
-plugin_manager install_bundle target=/path/to/dsh-quick-phrases
+```bash
+dsh plugin --profile <你的 profile> add dsh-quick-phrases
 ```
 
-安装后需要让渲染进程重新加载：**重启 DSH 桌面端**，或在会话页按 `Ctrl+R`。用 `link:` 方式安装时（本机开发就是这样），改完 `client.js` 也只需重载页面，不必重装。
+装完重启 DSH（或在会话页按 `Ctrl+R`）。包已发布到 npm：[dsh-quick-phrases](https://www.npmjs.com/package/dsh-quick-phrases)，升级时把 `add` 换成 `update dsh-quick-phrases` 即可。
+
+**方式 B（插件市场）**
+
+在 DSH 里打开 **Plugins → Discover → Index sources**，添加本仓库的索引地址：
+
+```
+https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json
+```
+
+之后在 Discover 里搜索「快捷短语」即可看到本插件与版本，点安装走的就是 `plugin_manager`。
+
+**方式 C（本地目录）**
+
+Plugins → Add plugin → 选择本仓库目录；或让 DSH 里的 agent 执行 `plugin_manager install_bundle target=/path/to/dsh-quick-phrases`。本地目录安装是 `link:` 方式，改完 `client.js` 只需重载页面、不必重装。
+
+> 三种方式装的是同一个 bundle，不要同时装两份：用 npm 或市场装过之后，先把本地 `link:` 那份卸掉再换。
 
 ## 使用
 

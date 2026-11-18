@@ -67,7 +67,7 @@ vm.runInContext(SOURCE, sandbox, { filename: 'client.js' })
 
 assert.equal(loaded.length, 1, 'exactly one module factory is registered')
 const spec = loaded[0]
-assert.equal(spec.id, '@local/dsh-quick-phrases', 'factory id equals the package name')
+assert.equal(spec.id, 'dsh-quick-phrases', 'factory id equals the package name')
 
 const plugin = spec.factory(sandbox.require)
 assert.deepEqual([...plugin.inject], ['slots', 'locale'], 'plugin injects slots + locale')

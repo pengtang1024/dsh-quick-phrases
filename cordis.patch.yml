@@ -2,5 +2,5 @@
 # Install the containing directory with plugin_manager install_bundle.
 - insert:
     - id: quick-phrases
-      name: '@local/dsh-quick-phrases'
+      name: 'dsh-quick-phrases'
       config: {}

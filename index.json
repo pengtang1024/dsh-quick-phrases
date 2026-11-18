@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Quick Phrases",
+    "zh": "快捷短语"
+  },
+  "description": {
+    "en": "Reusable prompt shortcuts beside the composer: one click fills or sends \"continue\", \"commit\", \"push\", \"release\" and anything else you type often. Each phrase keeps a short display name and its own text, and the manager lets you reorder, edit and pick where the row appears.",
+    "zh": "输入框旁的一排快捷短语：点一下就填入或直接发送「继续」「提交」「推送」「发版」等常用文本。每条短语的显示名称与发送内容分开，管理页可增删改、拖动手柄排序，还能选择短语行的显示位置。"
+  },
+  "metadata": {
+    "categories": {
+      "ui": {
+        "title": {
+          "en": "UI Enhancements",
+          "zh": "界面增强"
+        }
+      }
+    },
+    "labels": {},
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "dsh-quick-phrases",
+      "title": {
+        "en": "Quick Phrases",
+        "zh": "快捷短语"
+      },
+      "description": {
+        "en": "One-click prompt shortcuts with a manager: separate display name and sent text, drag to reorder, three docking positions, click-to-send or fill-only.",
+        "zh": "点按即用的提示短语，带管理页：显示名称与发送内容分离、拖动排序、三种显示位置、可切换「直接发送」或「只填入」。"
+      },
+      "icon": "https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/icon.svg",
+      "author": "pengtang1024",
+      "homepage": "https://github.com/pengtang1024/dsh-quick-phrases",
+      "repository": {
+        "url": "https://github.com/pengtang1024/dsh-quick-phrases"
+      },
+      "metadata": {
+        "category": "ui",
+        "keywords": [
+          "快捷短语",
+          "快捷按钮",
+          "常用文本",
+          "quick phrases",
+          "quick reply",
+          "canned responses",
+          "prompt shortcuts",
+          "composer"
+        ],
+        "labels": [],
+        "sortKeys": {}
+      },
+      "versions": [
+        {
+          "version": "0.3.3",
+          "publishTimestamp": 1794982337,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": "^0.2.2-rc.3"
+          }
+        },
+        {
+          "version": "0.3.4",
+          "publishTimestamp": 1794982670,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": "^0.2.2-rc.3"
+          }
+        }
+      ]
+    }
+  ]
+}

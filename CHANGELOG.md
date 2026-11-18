@@ -1,5 +1,19 @@
 # 变更记录
 
+## 0.3.4
+
+- 文档与发布说明同步：README 的 npm / 市场 / 本地目录三种安装方式、CONTRIBUTING 的完整发布流程、`docs/ARCHITECTURE.md` 的 `index.json` 说明。
+- 市场索引补上 `0.3.4` 版本，`0.3.3` 作为首次 npm 发布保留在版本列表里。
+
+## 0.3.3
+
+按 DSH 插件发布方式分发：
+
+- **发布到 npm**：包名 `dsh-quick-phrases`（原 `@local/dsh-quick-phrases`），`publishConfig` 固定 npmjs 与 public，可直接 `dsh plugin --profile <name> add dsh-quick-phrases` 安装。
+- **新增市场索引** `index.json`（format 1）：声明名称、中英简介、分类、关键词与 npm 版本，已通过 `@deepseek-ai/dsh-plugin-market-index` 的 `parseMarketIndex` 校验；加到 Discover 的 Index sources 即可搜索安装。
+- **`engines.dsh`** 声明 `^0.2.2-rc.3`，市场与 `plugin_manager` 据此判断兼容性。
+- README 增加 npm / 市场 / 本地目录三种安装方式；CONTRIBUTING 补完整发布流程（发布、索引、校验、tag 与复核）。
+
 ## 0.3.2
 
 文档与开源配套（不改插件行为）：

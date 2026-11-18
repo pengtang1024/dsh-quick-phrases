@@ -9,12 +9,13 @@ DSH 的插件是「bundle」：一个 npm 包 + 一行 Cordis patch。本仓库�
 | 文件 | 作用 |
 | --- | --- |
 | `index.js` | `export function apply() {}` —— Host 侧不注册任何东西 |
-| `cordis.patch.yml` | 把 `@local/dsh-quick-phrases` 插入到 bundle 列表 |
+| `cordis.patch.yml` | 把 `dsh-quick-phrases` 插入到 bundle 列表 |
 | `client.js` | 客户端插件：`window.__ModuleLoader__.load({ id, factory })` |
 | `locale/{zh,en}.json` | 插件管理器详情页的标题 / 描述 / 详情文档路径 |
 | `icon.svg` | 插件列表图标 |
+| `index.json` | 插件市场索引（format 1），让 Discover 能搜到并安装本插件 |
 
-`package.json` 里声明 `dsh.client.platform = "web"`、`immediately: true`、`inject: ["@deepseek-ai/dsh-client-ui-conversation"]`；`dsh.bundle.patch` 指向 patch 文件。没有构建步骤，改完 `client.js` 让渲染进程重载即可。
+`package.json` 里声明 `dsh.client.platform = "web"`、`immediately: true`、`inject: ["@deepseek-ai/dsh-client-ui-conversation"]`；`dsh.bundle.patch` 指向 patch 文件。`engines.dsh` 声明兼容的 DSH 版本，市场索引与 `plugin_manager` 用它判断可装性。没有构建步骤，改完 `client.js` 让渲染进程重载即可。
 
 ## 客户端入口
 

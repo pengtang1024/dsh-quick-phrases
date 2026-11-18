@@ -16,7 +16,7 @@
  * dependency-free: it is served verbatim to the Web page, there is no build step.
  */
 window.__ModuleLoader__.load({
-  id: '@local/dsh-quick-phrases',
+  id: 'dsh-quick-phrases',
   factory(require) {
     'use strict'
 

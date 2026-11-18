@@ -1,0 +1,6 @@
+# dsh-quick-phrases bundle patch: inserts one client plugin row.
+# Install the containing directory with plugin_manager install_bundle.
+- insert:
+    - id: quick-phrases
+      name: '@local/dsh-quick-phrases'
+      config: {}

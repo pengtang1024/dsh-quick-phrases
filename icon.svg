@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Quick phrases">
+  <defs>
+    <linearGradient id="dqp-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4C6FFF"/>
+      <stop offset="1" stop-color="#6E4CFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#dqp-bg)"/>
+  <g fill="#FFFFFF">
+    <rect x="14" y="18" width="20" height="9" rx="4.5" opacity="0.95"/>
+    <rect x="38" y="18" width="12" height="9" rx="4.5" opacity="0.6"/>
+    <rect x="14" y="31" width="12" height="9" rx="4.5" opacity="0.6"/>
+    <rect x="30" y="31" width="20" height="9" rx="4.5" opacity="0.95"/>
+  </g>
+  <g stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity="0.95">
+    <path d="M42 45v9"/>
+    <path d="M37.5 49.5h9"/>
+  </g>
+</svg>

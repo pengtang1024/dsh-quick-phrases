@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Quick phrases",
+    "description": "A row of phrase chips under the composer that fill the draft on click, with a managed list where the display name and the sent text are edited separately.",
+    "detail": "docs/DETAIL.en.md"
+  }
+}

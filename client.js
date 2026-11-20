@@ -27,6 +27,8 @@ window.__ModuleLoader__.load({
     var STORAGE_KEY = 'dsh.quick-phrases.v1'
     var PLACEMENT_KEY = 'dsh.quick-phrases.placement.v1'
     var CLICK_KEY = 'dsh.quick-phrases.click.v1'
+    var COLLAPSE_KEY = 'dsh.quick-phrases.collapsed.v1'
+    var AUTOHIDE_KEY = 'dsh.quick-phrases.autohide.v1'
     var SECTION_ID = 'quick-phrases'
     var DOCK_ORDER = 5
     var SECTION_ORDER = 26
@@ -55,13 +57,25 @@ window.__ModuleLoader__.load({
     var CLICK_MODES = ['send', 'fill']
     var DEFAULT_CLICK = 'send'
 
+    /**
+     * What happens to the row while the composer already holds text or files.
+     * `fold` pulls it down to one small pill (so a draft can still take a phrase
+     * at the caret after one click), `keep` leaves the whole row out.
+     */
+    var AUTO_HIDE_MODES = ['fold', 'keep']
+    var DEFAULT_AUTO_HIDE = 'fold'
+
     var DICTS = {
       zh: {
         'section.title': '快捷短语',
-        'section.description': '在输入框附近放一排短语按钮。按钮上显示的是「显示名称」，发送内容单独编辑，两者可以完全不同。下面的两项决定它出现在哪里、点一下会发生什么。',
+        'section.description': '在输入框附近放一排短语按钮。按钮上显示的是「显示名称」，发送内容单独编辑，两者可以完全不同。下面的设置决定它出现在哪里、点一下会发生什么，以及什么时候收起。',
         'dock.manage': '管理',
         'dock.openFailed': '请在「设置 — 快捷短语」中管理',
         'dock.tooltip': '写入输入框',
+        'dock.collapse': '收起',
+        'dock.collapseHint': '收起这一排短语，只留一个小胶囊',
+        'dock.expand': '快捷短语',
+        'dock.expandHint': '展开快捷短语',
         'manager.add': '新增短语',
         'manager.phrases': '短语',
         'manager.count': '{n} 条',
@@ -85,6 +99,15 @@ window.__ModuleLoader__.load({
         'manager.clickSend': '直接发送',
         'manager.clickInsert': '填入输入框',
         'manager.clickHint': '「直接发送」在输入框为空时一次点按就发出这条短语；输入框里已有文字或附件时会改为插到光标处，不会覆盖你正在写的内容。',
+        'manager.visible': '显示短语行',
+        'manager.visibleHint': '关掉后输入框旁只留一个小胶囊，点一下就能重新展开。',
+        'manager.autoHide': '输入框有内容时',
+        'manager.autoHideFold': '自动收起',
+        'manager.autoHideKeep': '保持显示',
+        'manager.autoHideHint': '输入框里已有文字或附件时把短语行收成一个小胶囊；点胶囊还能临时展开，不挡正在写的内容。',
+        'manager.hide': '隐藏这条短语',
+        'manager.show': '显示这条短语',
+        'manager.hiddenBadge': '已隐藏',
         'manager.label': '显示名称',
         'manager.text': '发送内容',
         'manager.labelPlaceholder': '按钮上显示的文字，例如：提交',
@@ -104,10 +127,14 @@ window.__ModuleLoader__.load({
       },
       en: {
         'section.title': 'Quick phrases',
-        'section.description': 'A row of phrase chips next to the composer. A chip shows its display name while the text it inserts is edited separately. The two options below decide where it lives and what a click does.',
+        'section.description': 'A row of phrase chips next to the composer. A chip shows its display name while the text it inserts is edited separately. The options below decide where it lives, what a click does, and when it folds away.',
         'dock.manage': 'Manage',
         'dock.openFailed': 'Manage them in Settings — Quick phrases',
         'dock.tooltip': 'Insert into the composer',
+        'dock.collapse': 'Hide',
+        'dock.collapseHint': 'Fold the row into a small pill',
+        'dock.expand': 'Quick phrases',
+        'dock.expandHint': 'Show the quick phrases',
         'manager.add': 'Add phrase',
         'manager.phrases': 'Phrases',
         'manager.count': '{n}',
@@ -131,6 +158,15 @@ window.__ModuleLoader__.load({
         'manager.clickSend': 'Send right away',
         'manager.clickInsert': 'Fill the composer',
         'manager.clickHint': '“Send right away” fires the phrase with one click while the composer is empty; when it already holds text or attachments the phrase is inserted at the caret instead, so nothing you were writing is lost.',
+        'manager.visible': 'Show the phrase row',
+        'manager.visibleHint': 'When off, only a small pill stays next to the composer; click it to bring the row back.',
+        'manager.autoHide': 'When the composer has text',
+        'manager.autoHideFold': 'Fold automatically',
+        'manager.autoHideKeep': 'Keep it visible',
+        'manager.autoHideHint': 'Folds the row into a small pill while the composer holds text or attachments; click the pill to expand it for the current draft.',
+        'manager.hide': 'Hide this phrase',
+        'manager.show': 'Show this phrase',
+        'manager.hiddenBadge': 'Hidden',
         'manager.label': 'Display name',
         'manager.text': 'Sent text',
         'manager.labelPlaceholder': 'Chip caption, e.g. Commit',
@@ -176,7 +212,7 @@ window.__ModuleLoader__.load({
       var text = typeof item.text === 'string' ? item.text : ''
       if (label === '' && text === '') return null
       var id = typeof item.id === 'string' && item.id !== '' ? item.id : 'p' + index
-      return { id: id, label: label, text: text }
+      return { id: id, label: label, text: text, hidden: item.hidden === true }
     }
 
     function readStorage() {
@@ -217,7 +253,7 @@ window.__ModuleLoader__.load({
 
     function seededPhrases(t) {
       return DEFAULT_SPECS.map(function (spec) {
-        return { id: spec.id, label: t(spec.label), text: t(spec.text) }
+        return { id: spec.id, label: t(spec.label), text: t(spec.text), hidden: false }
       })
     }
 
@@ -245,6 +281,7 @@ window.__ModuleLoader__.load({
         id: current.id,
         label: typeof patch.label === 'string' ? patch.label : current.label,
         text: typeof patch.text === 'string' ? patch.text : current.text,
+        hidden: typeof patch.hidden === 'boolean' ? patch.hidden : current.hidden === true,
       }
       replacePhrases(next)
     }
@@ -252,7 +289,7 @@ window.__ModuleLoader__.load({
     function insertPhrase() {
       if (state === null) return null
       var id = uniqueId()
-      replacePhrases(state.concat([{ id: id, label: '', text: '' }]))
+      replacePhrases(state.concat([{ id: id, label: '', text: '', hidden: false }]))
       return id
     }
 
@@ -434,6 +471,93 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Visibility: the row folds into a pill, and the manager can turn it off.
+     * ------------------------------------------------------------------ */
+
+    /**
+     * One localStorage-backed string toggle shared by the dock and the manager.
+     * `values` is the whitelist, so a hand-edited storage entry can never put a
+     * component into a state it does not know how to render.
+     */
+    function makeEnumStore(key, values, fallback, label) {
+      var current = null
+
+      function isValue(value) {
+        return values.indexOf(value) >= 0
+      }
+
+      function read() {
+        try {
+          var raw = window.localStorage.getItem(key)
+          if (raw !== null && isValue(raw)) return raw
+        } catch (error) {
+          console.warn('[quick-phrases] could not read the stored ' + label, error)
+        }
+        return fallback
+      }
+
+      function ensure() {
+        if (current !== null) return current
+        current = read()
+        return current
+      }
+
+      function set(next) {
+        if (!isValue(next) || next === ensure()) return
+        current = next
+        try {
+          window.localStorage.setItem(key, next)
+        } catch (error) {
+          console.warn('[quick-phrases] could not persist the ' + label, error)
+        }
+        emit()
+      }
+
+      /** Subscribes a component to this toggle and returns the current value. */
+      function use() {
+        var tick = React.useState(0)
+        var setTick = tick[1]
+        React.useEffect(function () {
+          var unsubscribe = subscribe(function () {
+            setTick(function (value) { return value + 1 })
+          })
+          function onStorage(event) {
+            if (event.key !== key) return
+            current = read()
+            setTick(function (value) { return value + 1 })
+          }
+          window.addEventListener('storage', onStorage)
+          return function () {
+            unsubscribe()
+            window.removeEventListener('storage', onStorage)
+          }
+        }, [])
+        return ensure()
+      }
+
+      return { read: read, set: set, use: use }
+    }
+
+    var collapseStore = makeEnumStore(COLLAPSE_KEY, ['0', '1'], '0', 'collapsed state')
+    var autoHideStore = makeEnumStore(AUTOHIDE_KEY, AUTO_HIDE_MODES, DEFAULT_AUTO_HIDE, 'auto-hide mode')
+
+    function useCollapsed() {
+      return collapseStore.use() === '1'
+    }
+
+    function setCollapsed(value) {
+      collapseStore.set(value ? '1' : '0')
+    }
+
+    function useAutoHide() {
+      return autoHideStore.use()
+    }
+
+    function setAutoHide(value) {
+      autoHideStore.set(value)
+    }
+
+    /* ------------------------------------------------------------------ *
      * Styles: local to each component, removed on unmount.
      * ------------------------------------------------------------------ */
 
@@ -458,6 +582,11 @@ window.__ModuleLoader__.load({
       '.dqp-chip:active{background:var(--dsw-alias-interactive-bg-hover-solid,rgba(255,255,255,.12))}' +
       '.dqp-chip:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
       '.dqp-chip-manage{color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
+      '.dqp-chip-collapse{color:var(--dsw-alias-label-caption,#7d7d7d);border-style:dashed;background:transparent}' +
+      '.dqp-chip-collapse:hover{color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
+      '.dqp-pill{gap:4px;color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
+      '.dqp-pill:hover{color:var(--dsw-alias-label-primary,#eee)}' +
+      '.dqp-caret{font-size:9px;line-height:1;opacity:.75}' +
       '.dqp-hint{color:var(--dsw-alias-state-warn-primary,#e0a33a);white-space:nowrap}'
 
     var MANAGER_CSS =
@@ -486,6 +615,21 @@ window.__ModuleLoader__.load({
       'color:var(--dsw-alias-label-primary,#eee);font:inherit;font-size:12px;line-height:1;appearance:none;-webkit-appearance:none;cursor:pointer}' +
       '.dqp-select:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08))}' +
       '.dqp-select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
+      '.dqp-switch{box-sizing:border-box;position:relative;flex:0 0 auto;width:36px;height:20px;padding:0;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'border-radius:999px;background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.06));cursor:pointer;' +
+      'transition:background-color .15s ease,border-color .15s ease}' +
+      '.dqp-switch:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.1))}' +
+      '.dqp-switch:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
+      '.dqp-switch-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;' +
+      'background:var(--dsw-alias-label-tertiary,#9a9a9a);transition:transform .15s ease,background-color .15s ease}' +
+      '.dqp-switch-on{border-color:transparent;background:var(--dsw-alias-button-primary-fill,#4c6fff)}' +
+      '.dqp-switch-on:hover{background:var(--dsw-alias-button-primary-hover,#3f5fe0)}' +
+      '.dqp-switch-on .dqp-switch-thumb{transform:translateX(16px);background:var(--dsw-alias-label-primary-foreground,#fff)}' +
+      '.dqp-row-muted .dqp-body{opacity:.55}' +
+      '.dqp-badge-hidden{margin-left:2px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'background:transparent;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
+      '.dqp-eye-off{color:var(--dsw-alias-label-caption,#7d7d7d)}' +
+      '.dqp-eye-off:hover:not(:disabled){color:var(--dsw-alias-label-primary,#eee)}' +
       '.dqp-section{display:flex;flex-direction:column;gap:10px}' +
       '.dqp-section-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px}' +
       '.dqp-section-title{flex:1 1 auto;margin:0;font-size:13px;line-height:20px;font-weight:600}' +
@@ -610,10 +754,25 @@ window.__ModuleLoader__.load({
         // hook order never depends on the phrase list or on the placement.
         var draft = typeof props.useInput === 'function' ? props.useInput(draftOf) : ''
         var attachments = typeof props.useInput === 'function' ? props.useInput(attachmentCountOf) : 0
+        var collapsed = useCollapsed()
+        var autoHide = useAutoHide()
+        var peekState = React.useState(false)
+        var peeked = peekState[0]
+        var setPeeked = peekState[1]
         var showHint = React.useState(false)
         var setShowHint = showHint[1]
         var hintTimer = React.useRef(null)
-        var usable = phrases.filter(function (phrase) { return phrase.text.trim() !== '' })
+        var hasDraft = draft.trim() !== '' || attachments > 0
+        var folded = collapsed || (autoHide === 'fold' && hasDraft && !peeked)
+        var usable = phrases.filter(function (phrase) {
+          return phrase.text.trim() !== '' && phrase.hidden !== true
+        })
+
+        // A peek only covers the draft that asked for it: once the composer is
+        // empty again the row is back to its normal width on its own.
+        React.useEffect(function () {
+          if (!hasDraft) setPeeked(false)
+        }, [hasDraft])
 
         React.useEffect(function () {
           return function () {
@@ -677,9 +836,28 @@ window.__ModuleLoader__.load({
         if (spec.compact) rowClass += ' dqp-dock-tool'
         if (spec.inset) rowClass += ' dqp-dock-inset'
 
-        var children = [
-          h('style', { key: 'style' }, DOCK_CSS),
-          h('div', { key: 'row', className: rowClass },
+        var children = [h('style', { key: 'style' }, DOCK_CSS)]
+        if (folded) {
+          // One pill keeps the caret-insertion path reachable: opening it is a
+          // single click that does not touch the draft being written.
+          children.push(h('div', { key: 'row', className: rowClass },
+            h('button', {
+              key: 'expand',
+              type: 'button',
+              className: 'dqp-chip dqp-pill',
+              title: t('dock.expandHint'),
+              'aria-label': t('dock.expandHint'),
+              'aria-expanded': false,
+              onClick: function () {
+                setPeeked(true)
+                setCollapsed(false)
+              },
+            },
+            h('span', { className: 'dqp-caret', 'aria-hidden': true }, '\u25b8'),
+            t('dock.expand')),
+          ))
+        } else {
+          children.push(h('div', { key: 'row', className: rowClass },
             usable.map(function (phrase, index) {
               return h('button', {
                 key: phrase.id + ':' + index,
@@ -691,13 +869,27 @@ window.__ModuleLoader__.load({
               }, phraseCaption(phrase))
             }),
             h('button', {
+              key: 'collapse',
+              type: 'button',
+              className: 'dqp-chip dqp-chip-collapse',
+              title: t('dock.collapseHint'),
+              'aria-label': t('dock.collapseHint'),
+              'aria-expanded': true,
+              onClick: function () {
+                setPeeked(false)
+                setCollapsed(true)
+              },
+            },
+            t('dock.collapse'),
+            h('span', { className: 'dqp-caret', 'aria-hidden': true }, '\u25be')),
+            h('button', {
               key: 'manage',
               type: 'button',
               className: 'dqp-chip dqp-chip-manage',
               onClick: handleManage,
             }, t('dock.manage')),
-          ),
-        ]
+          ))
+        }
         if (showHint[0]) {
           children.push(h('div', { key: 'hint', className: 'dqp-hint' }, t('dock.openFailed')))
         }
@@ -714,6 +906,8 @@ window.__ModuleLoader__.load({
       var phrases = usePhrases(t)
       var placementNow = usePlacement()
       var clickNow = useClickMode()
+      var collapsed = useCollapsed()
+      var autoHideNow = useAutoHide()
 
       var resetState = React.useState(false)
       var isResetting = resetState[0]
@@ -774,6 +968,7 @@ window.__ModuleLoader__.load({
         var deleting = pendingDelete === phrase.id
         var isDragging = dragFrom === index
         var isDropTarget = dragOver === index && dragFrom !== null && dragFrom !== index
+        var isHidden = phrase.hidden === true
         // Rough height hint: one row per line, plus one per ~72 characters.
         var textRows = phrase.text === ''
           ? 2
@@ -781,7 +976,8 @@ window.__ModuleLoader__.load({
 
         return h('div', {
           key: phrase.id,
-          className: 'dqp-row' + (isDragging ? ' dqp-row-dragging' : '') + (isDropTarget ? ' dqp-row-over' : ''),
+          className: 'dqp-row' + (isDragging ? ' dqp-row-dragging' : '') + (isDropTarget ? ' dqp-row-over' : '') +
+            (isHidden ? ' dqp-row-muted' : ''),
           onDragOver: function (event) {
             event.preventDefault()
             if (dragFrom !== null) setDragOver(index)
@@ -824,7 +1020,26 @@ window.__ModuleLoader__.load({
                 autoFocus: focusId === phrase.id,
                 onChange: function (event) { updatePhrase(index, { label: event.target.value }) },
               }),
+              isHidden
+                ? h('span', { className: 'dqp-badge dqp-badge-hidden' }, t('manager.hiddenBadge'))
+                : null,
               h('div', { className: 'dqp-row-actions' },
+                h('button', {
+                  type: 'button',
+                  className: 'dqp-icon dqp-eye' + (isHidden ? ' dqp-eye-off' : ''),
+                  title: isHidden ? t('manager.show') : t('manager.hide'),
+                  'aria-label': isHidden ? t('manager.show') : t('manager.hide'),
+                  'aria-pressed': isHidden,
+                  onClick: function () { updatePhrase(index, { hidden: !isHidden }) },
+                },
+                isHidden
+                  ? h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
+                      h('path', { d: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z', stroke: 'currentColor', strokeWidth: 1.7 }),
+                      h('circle', { cx: 12, cy: 12, r: 2.6, stroke: 'currentColor', strokeWidth: 1.7 }),
+                      h('path', { d: 'M4 20 20 4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }))
+                  : h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
+                      h('path', { d: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z', stroke: 'currentColor', strokeWidth: 1.7 }),
+                      h('circle', { cx: 12, cy: 12, r: 2.6, stroke: 'currentColor', strokeWidth: 1.7 }))),
                 h('button', {
                   type: 'button',
                   className: 'dqp-icon',
@@ -919,6 +1134,41 @@ window.__ModuleLoader__.load({
         ),
       )
 
+      var visibleOption = h('div', { className: 'dqp-option' },
+        h('div', { className: 'dqp-option-text' },
+          h('span', { className: 'dqp-option-label', id: 'dqp-visible-label' }, t('manager.visible')),
+          h('span', { className: 'dqp-option-hint' }, t('manager.visibleHint')),
+        ),
+        h('button', {
+          type: 'button',
+          id: 'dqp-visible',
+          className: 'dqp-switch' + (collapsed ? '' : ' dqp-switch-on'),
+          role: 'switch',
+          'aria-checked': !collapsed,
+          'aria-labelledby': 'dqp-visible-label',
+          onClick: function () { setCollapsed(!collapsed) },
+        }, h('span', { className: 'dqp-switch-thumb' })),
+      )
+
+      var autoHideOption = h('div', { className: 'dqp-option' },
+        h('div', { className: 'dqp-option-text' },
+          h('label', { className: 'dqp-option-label', htmlFor: 'dqp-autohide' }, t('manager.autoHide')),
+          h('span', { className: 'dqp-option-hint' }, t('manager.autoHideHint')),
+        ),
+        h('div', { className: 'dqp-select-wrap' },
+          h('select', {
+            id: 'dqp-autohide',
+            className: 'dqp-select',
+            value: autoHideNow,
+            onChange: function (event) { setAutoHide(event.target.value) },
+          },
+          AUTO_HIDE_MODES.map(function (value) {
+            return h('option', { key: value, value: value }, t(value === 'fold' ? 'manager.autoHideFold' : 'manager.autoHideKeep'))
+          }),
+          ),
+        ),
+      )
+
       return h('div', { className: 'dqp-page' },
         h('style', null, MANAGER_CSS),
         h('div', { className: 'dqp-inner' },
@@ -929,7 +1179,7 @@ window.__ModuleLoader__.load({
             ),
             h('span', { className: 'dqp-badge' }, t('manager.count').replace('{n}', String(phrases.length))),
           ),
-          h('div', { className: 'dqp-options' }, placementOption, clickOption),
+          h('div', { className: 'dqp-options' }, placementOption, clickOption, visibleOption, autoHideOption),
           h('div', { className: 'dqp-section' },
             h('div', { className: 'dqp-section-head' },
               h('h3', { className: 'dqp-section-title' }, t('manager.phrases')),

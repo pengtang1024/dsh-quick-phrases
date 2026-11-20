@@ -23,14 +23,27 @@ The row can be moved at any time from the settings page; the switch applies imme
 
 All three rows stay registered, but only the selected one renders — switching is a re-render, not a page reload.
 
+## Folding and hiding
+
+The row should never get in the way of typing, so it can fold in two ways:
+
+- **Fold by hand**: click `收起 ▾` at the end of the row and it collapses into a small `▸ 快捷短语` pill; click the pill to expand it temporarily, and 「收起」 to fold it again.
+- **Fold automatically** (default): with "When the composer has text" set to "Fold automatically", the row collapses into the pill as soon as the composer holds text or attachments, and expands again once the draft is cleared. Pick "Keep it visible" to keep the full row instead.
+
+Clicking a phrase after expanding the pill behaves exactly as before: when the composer already has content the text is inserted at the caret instead of replacing it.
+
+A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back. The "Show the phrase row" switch in Settings hides the whole row.
+
 ## Managing phrases
 
 Open **Settings → Quick phrases**. The page has two layers: behaviour options on top, the phrase list below.
 
-**Behaviour options** (two dropdowns, applied on selection):
+**Behaviour options** (applied on selection):
 
 - **Position**: switch between the three positions above.
 - **On click**: pick "Send right away" or "Fill the composer"; the default is sending right away.
+- **Show the phrase row**: switch the whole row on or off. When off, a single small pill remains beside the composer; click it to expand.
+- **When the composer has text**: pick "Fold automatically" (default) or "Keep it visible" to decide whether the row folds into the pill while a draft or attachments exist.
 
 **Phrase list** (one card per phrase):
 
@@ -38,14 +51,15 @@ Open **Settings → Quick phrases**. The page has two layers: behaviour options 
 - **Label**: the top line of the card is the button caption — edit it in place.
 - **Text**: the large field below, multi-line.
 - **Chip preview**: each card shows the resulting chip and its character count, so a too-wide label is obvious before you send anything.
+- **Eye**: hide or restore that phrase. A hidden phrase leaves the row while its card stays in the manager with a "Hidden" badge.
 - **✕**: the first click only arms the delete ("Confirm"), a second click within four seconds removes the phrase.
 - **Add phrase** appends an empty card and focuses its caption; **Restore defaults** arms on the first click and restores the four built-in phrases on the second.
 
-Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
+Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
 
 ## Opening it from the composer
 
-The **Manage** chip at the end of the row jumps to the same settings page. If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
+The **Manage** chip at the end of the row jumps to the same settings page (expand the pill first when the row is folded). If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
 
 ## Styling
 

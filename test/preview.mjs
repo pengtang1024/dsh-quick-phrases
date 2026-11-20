@@ -183,14 +183,24 @@ ${managerHtml}
 /* Chips-only page: same row, in both themes, for a close look at the composer surface. */
 {
   const dockHtmlForChips = serialize(render('dock', dock, { t, inputActions: { setDraft() {} }, openManager: () => true }))
+  const draftDockProps = {
+    t,
+    inputActions: { setDraft() {} },
+    openManager: () => true,
+    useInput: (sel) => sel({ draft: '帮我补一下这段说明', attachmentIds: [] }),
+  }
+  const dockHtmlFolded = serialize(render('dock-folded', dock, draftDockProps))
   const chips = `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}
     body { padding: 16px; }
     .composer { max-width: 640px; border-radius: 22px; padding: 14px 16px 10px; background: var(--dsw-alias-bg-layer-1, #262626); box-shadow: inset 0 0 0 .5px var(--dsw-alias-border-l2, #444); }
+    .composer + .stage-label { margin-top: 18px; }
     .line { height: 34px; color: var(--dsw-alias-label-caption, #7d7d7d); }
     .status { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--dsw-alias-label-caption, #7d7d7d); }
   </style></head>
-<body><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
-<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlForChips}</div></div></body></html>`
+<body><p class="stage-label">界面示意图 · 短语行（深色 / 浅色）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlForChips}</div></div>
+<p class="stage-label">界面示意图 · 输入框有草稿时自动收起</p><div class="composer"><div class="line">帮我补一下这段说明</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlFolded}</div></div></body></html>`
   for (const dark of [true, false]) {
     const file = '/tmp/dqp-chips-' + (dark ? 'dark' : 'light') + '.html'
     fs.writeFileSync(file, chips.replace('<body>', '<body' + (dark ? ' data-ds-dark-theme' : '') + '>'))
@@ -250,8 +260,8 @@ if (process.argv.includes('--shot')) {
   const shots = [
     ['/tmp/dqp-dark.html', '/tmp/dqp-dark.png', '760,1190'],
     ['/tmp/dqp-light.html', '/tmp/dqp-light.png', '760,1190'],
-    ['/tmp/dqp-chips-dark.html', '/tmp/dqp-chips-dark.png', '700,180'],
-    ['/tmp/dqp-chips-light.html', '/tmp/dqp-chips-light.png', '700,180'],
+    ['/tmp/dqp-chips-dark.html', '/tmp/dqp-chips-dark.png', '700,300'],
+    ['/tmp/dqp-chips-light.html', '/tmp/dqp-chips-light.png', '700,300'],
     ['/tmp/dqp-stack-dark.html', '/tmp/dqp-stack-dark.png', '980,460'],
     ['/tmp/dqp-stack-light.html', '/tmp/dqp-stack-light.png', '980,460'],
   ]

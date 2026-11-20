@@ -176,7 +176,7 @@ const buttonByText = (tree, text) => {
 
 const rowsOf = (tree) =>
   walk(tree).filter(
-    (n) => n.type === 'div' && String(n.props.className ?? '') === 'dqp-row',
+    (n) => n.type === 'div' && String(n.props.className ?? '').split(' ').includes('dqp-row'),
   )
 
 /* ---------------- dock: chips write the draft ---------------- */
@@ -203,24 +203,44 @@ const dockProps = {
   },
 }
 const chips = byClass(render('dock', dockReg.component, dockProps), 'dqp-chip')
-assert.equal(chips.length, 5, 'four phrase chips + manage')
+assert.equal(chips.length, 6, 'four phrase chips + hide + manage')
 assert.deepEqual(
   chips.slice(0, 4).map((c) => textOf(c)),
   ['继续', '提交', '推送', '发版'],
 )
+assert.ok(chips[4].props.className.includes('dqp-chip-collapse'), 'the row ends with a hide chip')
+assert.ok(chips[5].props.className.includes('dqp-chip-manage'), 'manage is the last chip')
 
 chips[1].props.onClick()
 assert.deepEqual(written, ['提交改动并推送到远端'], 'chip writes its sent text, not its label')
 assert.equal(submitted.length, 1, 'an empty composer sends the phrase instead of only writing it')
 assert.deepEqual(inserted, [], 'the send path does not fall through to insertion')
 
-chips[4].props.onClick()
+chips[5].props.onClick()
 assert.equal(manageCalls, 1, 'manage chip calls the settings opener')
 const dockTree2 = render('dock', dockReg.component, dockProps)
 assert.ok(
   walk(dockTree2).some((n) => String(n.props?.className ?? '').includes('dqp-hint')),
   'a failed settings jump shows the fallback hint',
 )
+
+/* ---------------- hiding: the whole row folds into one pill ---------------- */
+
+const collapseStored = () => localStorage.getItem('dsh.quick-phrases.collapsed.v1')
+assert.equal(collapseStored(), null, 'nothing stored before the first hide')
+
+byClass(render('dock', dockReg.component, dockProps), 'dqp-chip-collapse')[0].props.onClick()
+assert.equal(collapseStored(), '1', 'hiding the row persists the folded state')
+const foldedTree = render('dock', dockReg.component, dockProps)
+const foldedChips = byClass(foldedTree, 'dqp-chip')
+assert.equal(foldedChips.length, 1, 'a folded row renders a single pill')
+assert.ok(foldedChips[0].props.className.includes('dqp-pill'), 'the pill is its own chip')
+assert.ok(textOf(foldedChips[0]).includes(t('dock.expand')), 'the pill is labelled with the row name')
+assert.equal(foldedChips[0].props['aria-expanded'], false)
+
+foldedChips[0].props.onClick()
+assert.equal(collapseStored(), '0', 'opening the pill clears the folded state')
+assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 6, 'the row comes back')
 
 /* ---------------- click behaviour: send right away vs fill only ---------------- */
 
@@ -245,11 +265,48 @@ const draftProps = {
 submitted.length = 0
 inserted.length = 0
 written.length = 0
+const autoHideStored = () => localStorage.getItem('dsh.quick-phrases.autohide.v1')
+assert.equal(autoHideStored(), null, 'nothing stored before the first policy switch')
+const draftFolded = byClass(render('draft', dockReg.component, draftProps), 'dqp-chip')
+assert.equal(draftFolded.length, 1, 'a draft folds the row by default')
+assert.ok(textOf(draftFolded[0]).includes(t('dock.expand')), 'the folded row keeps an expand pill')
+
+// Opening the pill is a peek: the row comes back for this draft, the setting stays.
+draftFolded[0].props.onClick()
+assert.equal(collapseStored(), '0', 'peeking does not persist a collapsed row')
+assert.equal(autoHideStored(), null, 'peeking does not change the auto-hide policy')
 const draftChips = byClass(render('draft', dockReg.component, draftProps), 'dqp-chip')
+assert.equal(draftChips.length, 6, 'the peeked row shows every chip again')
 draftChips[1].props.onClick()
 assert.equal(submitted.length, 0, 'a non-empty draft is not sent over')
 assert.deepEqual(inserted, ['提交改动并推送到远端'], 'the phrase is inserted at the caret instead')
 assert.deepEqual(written, [], 'the typed draft is not replaced')
+
+// Keeping the row visible is the opt-out for anyone who wants it always there.
+const policyPicker = selectById(render('manager', sectionReg.component, { t }), 'dqp-autohide')
+assert.ok(policyPicker, 'the auto-hide policy is a dropdown')
+assert.equal(policyPicker.props.value, 'fold', 'folding is the default policy')
+assert.deepEqual(
+  walk(policyPicker).filter((n) => n.type === 'option').map((n) => textOf(n)),
+  [t('manager.autoHideFold'), t('manager.autoHideKeep')],
+  'two auto-hide policies are offered',
+)
+policyPicker.props.onChange({ target: { value: 'keep' } })
+assert.equal(autoHideStored(), 'keep', 'choosing keep persists it')
+assert.equal(
+  byClass(render('draft-keep', dockReg.component, draftProps), 'dqp-chip').length,
+  6,
+  'keeping the row visible leaves it open while a draft exists',
+)
+policyPicker.props.onChange({ target: { value: 'fold' } })
+assert.equal(autoHideStored(), 'fold', 'the policy can be switched back')
+
+// Attachments count as content too.
+const attachProps = {
+  ...dockProps,
+  useInput: (sel) => sel({ draft: '', attachmentIds: ['a1'] }),
+}
+assert.equal(byClass(render('attach', dockReg.component, attachProps), 'dqp-chip').length, 1, 'an attached file folds the row too')
 
 // Fill-only mode: still no submit even with an empty composer.
 clickPicker.props.onChange({ target: { value: 'fill' } })
@@ -272,7 +329,7 @@ assert.equal(clickStored(), 'send', 'the click behaviour can be switched back')
 const placementStored = () => localStorage.getItem('dsh.quick-phrases.placement.v1')
 
 assert.equal(placementStored(), null, 'nothing stored before the first switch')
-assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length === 5, 'default position is under the composer')
+assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length === 6, 'default position is under the composer')
 assert.ok(
   walk(render('dock-default', dockReg.component, dockProps)).some(
     (n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-inset',
@@ -296,7 +353,7 @@ placementPicker.props.onChange({ target: { value: 'input-dock' } })
 assert.equal(placementStored(), 'input-dock', 'switching position persists it')
 assert.equal(render('dock', dockReg.component, dockProps), null, 'the old row disappears')
 const topTree = render('top', topReg.component, dockProps)
-assert.equal(byClass(topTree, 'dqp-chip').length, 5, 'the new row renders above the composer')
+assert.equal(byClass(topTree, 'dqp-chip').length, 6, 'the new row renders above the composer')
 assert.ok(
   walk(topTree).some((n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-inset'),
   'the above-composer row copies the host dock geometry so it lines up with the card',
@@ -312,17 +369,54 @@ assert.ok(
   walk(toolTree).some((n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-tool'),
   'the tool row uses the compact variant',
 )
-assert.equal(byClass(toolTree, 'dqp-chip').length, 5)
+assert.equal(byClass(toolTree, 'dqp-chip').length, 6)
 
 // Back to the default so the CRUD assertions below read the dock row.
 placementPicker = selectById(render('manager', sectionReg.component, { t }), 'dqp-placement')
 placementPicker.props.onChange({ target: { value: 'composer-dock' } })
 assert.equal(placementStored(), 'composer-dock', 'the position can be switched back')
-assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 5)
+assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 6)
+
+/* ---------------- manager: the visibility switch and per-phrase hiding ---------------- */
+
+const stored = () => JSON.parse(localStorage.getItem('dsh.quick-phrases.v1'))
+
+let managerTree = render('manager', sectionReg.component, { t })
+assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
+
+const visibilitySwitch = () =>
+  walk(render('manager', sectionReg.component, { t })).find(
+    (n) => n.type === 'button' && n.props.id === 'dqp-visible',
+  )
+assert.ok(visibilitySwitch(), 'the manager offers a row-visibility switch')
+assert.equal(visibilitySwitch().props.role, 'switch')
+assert.equal(visibilitySwitch().props['aria-checked'], true, 'the row starts visible')
+visibilitySwitch().props.onClick()
+assert.equal(collapseStored(), '1', 'the switch folds the dock row')
+assert.equal(visibilitySwitch().props['aria-checked'], false, 'the switch reflects the folded state')
+assert.equal(byClass(render('dock-switch', dockReg.component, dockProps), 'dqp-chip').length, 1)
+visibilitySwitch().props.onClick()
+assert.equal(collapseStored(), '0', 'the switch brings the row back')
+
+// One phrase can be hidden without leaving the list: the row stays, the chip goes.
+managerTree = render('manager', sectionReg.component, { t })
+click(managerTree, 'dqp-eye', 0)
+assert.equal(stored()[0].hidden, true, 'the eye toggle persists the hidden flag')
+assert.equal(byClass(render('dock-hidden', dockReg.component, dockProps), 'dqp-chip').length, 5, 'a hidden phrase loses its chip')
+assert.equal(rowsOf(render('manager', sectionReg.component, { t })).length, 4, 'the hidden row stays in the manager')
+assert.ok(
+  walk(render('manager', sectionReg.component, { t })).some(
+    (n) => n.type === 'div' && String(n.props.className ?? '').includes('dqp-row-muted'),
+  ),
+  'the hidden row is dimmed',
+)
+managerTree = render('manager', sectionReg.component, { t })
+click(managerTree, 'dqp-eye', 0)
+assert.equal(stored()[0].hidden, false, 'the eye toggle shows the phrase again')
+assert.equal(byClass(render('dock-shown', dockReg.component, dockProps), 'dqp-chip').length, 6)
 
 /* ---------------- manager: add / edit / reorder / delete / reset ---------------- */
 
-let managerTree = render('manager', sectionReg.component, { t })
 assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
 
 function click(tree, className, index = 0) {
@@ -330,8 +424,6 @@ function click(tree, className, index = 0) {
   assert.ok(buttons[index], 'button ' + className + '[' + index + '] exists')
   buttons[index].props.onClick()
 }
-
-const stored = () => JSON.parse(localStorage.getItem('dsh.quick-phrases.v1'))
 
 click(managerTree, 'dqp-btn-primary') // add
 assert.equal(stored().length, 5, 'add appends a row')
@@ -348,7 +440,8 @@ const textarea = walk(rows[0]).filter((n) => n.type === 'textarea')[0]
 textarea.props.onChange({ target: { value: '继续，按原计划推进' } })
 assert.equal(stored()[0].text, '继续，按原计划推进', 'text edits persist separately from the label')
 
-click(rows[1], 'dqp-icon', 0) // ↑ on the second row
+// The eye toggle shares .dqp-icon, so the move arrows start at index 1.
+click(rows[1], 'dqp-icon', 1) // ↑ on the second row
 assert.deepEqual(
   stored().slice(0, 2).map((p) => p.label),
   ['提交', '继续吧'],
@@ -435,4 +528,4 @@ assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 5, 'dock renders without a
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
-console.log('PASS — click-to-send, dock chips, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — click-to-send, dock chips, folding, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')

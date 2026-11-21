@@ -32,7 +32,12 @@ The row should never get in the way of typing, so it can fold in two ways:
 
 Clicking a phrase after expanding the pill behaves exactly as before: when the composer already has content the text is inserted at the caret instead of replacing it.
 
-A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back. The "Show the phrase row" switch in Settings hides the whole row.
+A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back.
+
+Folding and hiding the whole row are two different things:
+
+- **Folding** only shrinks the row into the small pill, which stays next to the composer; click it to expand.
+- **Hiding completely** is what the "Show the phrase row" switch does when turned off: the row leaves the UI entirely — **not even the pill stays**, nothing at all is rendered. The only way back is Settings → Quick phrases, where the switch is marked "Row hidden"; turning it on also clears any leftover folded state and restores the full row.
 
 ## Managing phrases
 
@@ -42,7 +47,7 @@ Open **Settings → Quick phrases**. The page has two layers: behaviour options 
 
 - **Position**: switch between the three positions above.
 - **On click**: pick "Send right away" or "Fill the composer"; the default is sending right away.
-- **Show the phrase row**: switch the whole row on or off. When off, a single small pill remains beside the composer; click it to expand.
+- **Show the phrase row**: switch the whole row on or off. Off hides it completely — nothing at all is rendered, not even the pill — and only this page can bring it back; turning it on also clears the folded state so the full row returns.
 - **When the composer has text**: pick "Fold automatically" (default) or "Keep it visible" to decide whether the row folds into the pill while a draft or attachments exist.
 
 **Phrase list** (one card per phrase):
@@ -55,7 +60,7 @@ Open **Settings → Quick phrases**. The page has two layers: behaviour options 
 - **✕**: the first click only arms the delete ("Confirm"), a second click within four seconds removes the phrase.
 - **Add phrase** appends an empty card and focuses its caption; **Restore defaults** arms on the first click and restores the four built-in phrases on the second.
 
-Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
+Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`, the complete-hide state `dsh.quick-phrases.hidden.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
 
 ## Opening it from the composer
 

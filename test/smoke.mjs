@@ -384,6 +384,9 @@ const stored = () => JSON.parse(localStorage.getItem('dsh.quick-phrases.v1'))
 let managerTree = render('manager', sectionReg.component, { t })
 assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
 
+const hiddenStored = () => localStorage.getItem('dsh.quick-phrases.hidden.v1')
+assert.equal(hiddenStored(), null, 'the row is not hidden by default')
+
 const visibilitySwitch = () =>
   walk(render('manager', sectionReg.component, { t })).find(
     (n) => n.type === 'button' && n.props.id === 'dqp-visible',
@@ -391,12 +394,42 @@ const visibilitySwitch = () =>
 assert.ok(visibilitySwitch(), 'the manager offers a row-visibility switch')
 assert.equal(visibilitySwitch().props.role, 'switch')
 assert.equal(visibilitySwitch().props['aria-checked'], true, 'the row starts visible')
+
+// The 收起 chip keeps its old meaning: one pill, the row is still there.
+byClass(render('dock', dockReg.component, dockProps), 'dqp-chip-collapse')[0].props.onClick()
+assert.equal(collapseStored(), '1', 'the 收起 chip still folds the row into a pill')
+assert.equal(hiddenStored(), null, 'folding does not write the hidden state')
+assert.equal(byClass(render('dock-pill-again', dockReg.component, dockProps), 'dqp-chip').length, 1)
+
+// Off means gone: no chips, no pill, no placeholder at all.
 visibilitySwitch().props.onClick()
-assert.equal(collapseStored(), '1', 'the switch folds the dock row')
-assert.equal(visibilitySwitch().props['aria-checked'], false, 'the switch reflects the folded state')
-assert.equal(byClass(render('dock-switch', dockReg.component, dockProps), 'dqp-chip').length, 1)
+assert.equal(hiddenStored(), '1', 'the switch persists a complete hide')
+assert.equal(
+  render('dock-hidden-row', dockReg.component, dockProps),
+  null,
+  'a hidden row renders absolutely nothing — not even the pill',
+)
+assert.equal(visibilitySwitch().props['aria-checked'], false, 'the switch reflects the hidden row')
+
+const hiddenManager = render('manager', sectionReg.component, { t })
+assert.ok(
+  walk(hiddenManager).some((n) => typeof n === 'string' && n === t('manager.rowHiddenBadge')),
+  'the manager marks the whole row as hidden',
+)
+assert.ok(
+  walk(hiddenManager).some((n) => typeof n === 'string' && n === t('manager.visibleHintOff')),
+  'the manager explains where the row can be restored',
+)
+
+// Settings is the only way back; opening it also clears the leftover fold.
 visibilitySwitch().props.onClick()
-assert.equal(collapseStored(), '0', 'the switch brings the row back')
+assert.equal(hiddenStored(), '0', 'the switch brings the row back')
+assert.equal(collapseStored(), '0', 'bringing the row back clears a folded state')
+assert.equal(
+  byClass(render('dock-switch', dockReg.component, dockProps), 'dqp-chip').length,
+  6,
+  'the whole row is back',
+)
 
 // One phrase can be hidden without leaving the list: the row stays, the chip goes.
 managerTree = render('manager', sectionReg.component, { t })
@@ -528,4 +561,4 @@ assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 5, 'dock renders without a
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
-console.log('PASS — click-to-send, dock chips, folding, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — click-to-send, dock chips, folding, complete hiding, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')

@@ -155,6 +155,33 @@ const themeCss = fs.existsSync(THEME_CSS)
   : '/* theme tokens not found — set DQP_ASAR to the host app.asar node_modules/@deepseek-ai */'
 const managerHtml = serialize(render('manager', manager, { t }))
 
+/* The completely hidden row must leave the page empty; the manager switch is the
+   only way back, so render that state too instead of trusting it blind. */
+function collectNodes(node, out = []) {
+  if (node == null || typeof node !== 'object') return out
+  if (Array.isArray(node)) {
+    node.forEach((child) => collectNodes(child, out))
+    return out
+  }
+  out.push(node)
+  ;(node.children ?? []).forEach((child) => collectNodes(child, out))
+  return out
+}
+const manageProps = { t }
+const visibleSwitch = () =>
+  collectNodes(render('preview-manager', manager, manageProps)).find(
+    (n) => n.type === 'button' && n.props.id === 'dqp-visible',
+  )
+visibleSwitch().props.onClick()
+const hiddenManagerHtml = serialize(render('preview-manager-hidden', manager, manageProps))
+const hiddenDockHtml = serialize(render('preview-dock-hidden', dock, {
+  t,
+  inputActions: { setDraft() {} },
+  openManager: () => true,
+}))
+assert.equal(hiddenDockHtml, '', 'a completely hidden row renders nothing at all')
+visibleSwitch().props.onClick() // back to the visible row for the pages below
+
 const PAGE_CSS = `
   html, body { margin: 0; padding: 0; }
   body {
@@ -180,6 +207,19 @@ ${managerHtml}
   console.log('wrote', file, html.length + ' bytes')
 }
 
+/* Manager page in the hidden state: the status badge and the restore hint. */
+for (const dark of [true, false]) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}</style></head>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="stage-label">界面示意图 · 管理页（整排已隐藏，${dark ? '深色' : '浅色'}）</p>
+<div class="stage">
+${hiddenManagerHtml}
+</div></body></html>`
+  const file = '/tmp/dqp-hidden-' + (dark ? 'dark' : 'light') + '.html'
+  fs.writeFileSync(file, html)
+  console.log('wrote', file, html.length + ' bytes')
+}
+
 /* Chips-only page: same row, in both themes, for a close look at the composer surface. */
 {
   const dockHtmlForChips = serialize(render('dock', dock, { t, inputActions: { setDraft() {} }, openManager: () => true }))
@@ -200,7 +240,9 @@ ${managerHtml}
 <body><p class="stage-label">界面示意图 · 短语行（深色 / 浅色）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
 <div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlForChips}</div></div>
 <p class="stage-label">界面示意图 · 输入框有草稿时自动收起</p><div class="composer"><div class="line">帮我补一下这段说明</div>
-<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlFolded}</div></div></body></html>`
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${dockHtmlFolded}</div></div>
+<p class="stage-label">界面示意图 · 整排完全隐藏（这里什么都不渲染，连胶囊都没有）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${hiddenDockHtml}</div></div></body></html>`
   for (const dark of [true, false]) {
     const file = '/tmp/dqp-chips-' + (dark ? 'dark' : 'light') + '.html'
     fs.writeFileSync(file, chips.replace('<body>', '<body' + (dark ? ' data-ds-dark-theme' : '') + '>'))
@@ -264,6 +306,8 @@ if (process.argv.includes('--shot')) {
     ['/tmp/dqp-chips-light.html', '/tmp/dqp-chips-light.png', '700,300'],
     ['/tmp/dqp-stack-dark.html', '/tmp/dqp-stack-dark.png', '980,460'],
     ['/tmp/dqp-stack-light.html', '/tmp/dqp-stack-light.png', '980,460'],
+    ['/tmp/dqp-hidden-dark.html', '/tmp/dqp-hidden-dark.png', '760,700'],
+    ['/tmp/dqp-hidden-light.html', '/tmp/dqp-hidden-light.png', '760,700'],
   ]
   const chromeMissing = !fs.existsSync(CHROME)
   if (chromeMissing) {

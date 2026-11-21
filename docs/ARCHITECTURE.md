@@ -52,7 +52,7 @@ return {
 
 ## 数据层
 
-五个 store 都是模块级状态 + `localStorage`，不经过 Host：
+六个 store 都是模块级状态 + `localStorage`，不经过 Host：
 
 | store | 存储键 | 读写 |
 | --- | --- | --- |
@@ -61,19 +61,24 @@ return {
 | 点按行为 | `dsh.quick-phrases.click.v1` | 同上 |
 | 整排收起 | `dsh.quick-phrases.collapsed.v1` | `'1'` / `'0'`，缺省 `'0'` |
 | 自动收起选项 | `dsh.quick-phrases.autohide.v1` | `'fold'` / `'keep'`，缺省 `'fold'` |
+| 整排彻底隐藏 | `dsh.quick-phrases.hidden.v1` | `'1'` / `'0'`，缺省 `'0'`；`'1'` 时三个位置都不渲染 |
 
-后三个用同一个工厂 `makeEnumStore(key, values, fallback, label)` 造出来：读取时白名单外的值一律回落 fallback，写入前也做同样校验，所以旧版本留下的脏值或手改的 `localStorage` 不会让界面进入未定义状态。新增一个类似开关时优先复用它，不要再手写第六份 read/ensure/set/use。
+后三个（整排收起 / 自动收起 / 整排彻底隐藏）用同一个工厂 `makeEnumStore(key, values, fallback, label)` 造出来：读取时白名单外的值一律回落 fallback，写入前也做同样校验，所以旧版本留下的脏值或手改的 `localStorage` 不会让界面进入未定义状态。新增一个类似开关时优先复用它，不要再手写第三份 read/ensure/set/use（显示位置 / 点按行为两处仍是手写实现）。
 
-`usePhrases()` / `usePlacement()` / `useClickMode()` / `useCollapsed()` / `useAutoHide()` 是 `useState` + `subscribe` 的小包装，同时监听 `storage` 事件，多窗口之间也能同步。首次使用时按当前界面语言写入四条默认短语。
+`usePhrases()` / `usePlacement()` / `useClickMode()` / `useCollapsed()` / `useAutoHide()` / `useHidden()` 是 `useState` + `subscribe` 的小包装，同时监听 `storage` 事件，多窗口之间也能同步。首次使用时按当前界面语言写入四条默认短语。
 
 短语条目里除了 `id` / `label` / `text` 还有一个 `hidden` 布尔值（`normalize()` 缺成 `false`）。短语行渲染前会滤掉 `hidden === true` 的条目，管理页则照常渲染并用 `dqp-row-muted` 变暗、加「已隐藏」徽标。
 
-收起逻辑也在 `DockChips` 里，先于渲染决定这次画整排还是画一个胶囊：
+可见性判断也在 `DockChips` 里，顺序固定：先把 hook 全部跑完（数量不随状态变化），再依次判断位置、彻底隐藏、折叠：
 
 ```
+if (current !== spec.value) return null   // 只有选中位置的那一行渲染
+if (hidden) return null                   // 彻底隐藏：什么都不渲染，连胶囊都不留
 hasDraft = draft.trim() !== '' || attachments > 0
 folded   = collapsed || (autoHide === 'fold' && hasDraft && !peeked)
 ```
+
+`hidden` 优先于折叠：即使之前用「收起」写过 `collapsed='1'`，隐藏后也不会冒出胶囊。管理页开关打开时同时 `setHidden(false)` 与 `setCollapsed(false)`，直接回到整排。
 
 `peeked` 是组件内部的临时状态：点胶囊时置 `true` 并同时展开（`setCollapsed(false)`），这样"临时看一眼"不会写进 `localStorage`，草稿清空后 `useEffect` 会把它清掉。手动收起（`setCollapsed(true)`）是持久状态，跨会话保留。
 
@@ -108,9 +113,9 @@ margin: 0 auto;
 
 `test/smoke.mjs` 把真实的 `client.js` 放进 `vm` 沙箱，用最小假 React（按组件名分配 hook 单元）和假 ModuleLoader 跑起来，直接调组件自己的 `onClick` / `onChange`，断言落在 `localStorage` 和渲染树上的结果。改行为时先改这里——它是唯一能在没有宿主的情况下验证「显示与发送分离」「位置切换」「拖动排序」「收起与隐藏」是否还成立的护栏。
 
-与收起/隐藏相关的断言：点「收起」写入 `collapsed.v1='1'` 且只剩 `.dqp-pill`；点胶囊回到 `'0'` 并恢复六个 chip；草稿出现时默认折成胶囊、展开后点第二条仍插到光标处；`autohide` 切到 `keep` 后草稿不再折叠；`#dqp-visible` 开关往返；隐藏一条后短语行少一个 chip、管理页仍是四张卡片且第一张带 `dqp-row-muted`。
+与收起/隐藏相关的断言：点「收起」写入 `collapsed.v1='1'` 且只剩 `.dqp-pill`；点胶囊回到 `'0'` 并恢复六个 chip；草稿出现时默认折成胶囊、展开后点第二条仍插到光标处；`autohide` 切到 `keep` 后草稿不再折叠；`#dqp-visible` 关掉后写入 `hidden.v1='1'` 且整排组件返回 `null`（折叠状态下点关也一样，胶囊不回来），管理页显示「整排已隐藏」徽标与恢复提示；再打开后 `hidden='0'`、`collapsed='0'`、六个 chip 全部回来；隐藏一条后短语行少一个 chip、管理页仍是四张卡片且第一张带 `dqp-row-muted`。
 
-`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题。`docs/images/` 下的图就是它产出的**界面示意图**（图内带「界面示意图」标题），不是真机截屏。
+`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题；它还会渲染「整排完全隐藏」的管理页状态，并断言隐藏时短语行序列化出来是空字符串。`docs/images/` 下的图就是它产出的**界面示意图**（图内带「界面示意图」标题），不是真机截屏。
 
 ## 兼容性注意
 

@@ -29,6 +29,7 @@ window.__ModuleLoader__.load({
     var CLICK_KEY = 'dsh.quick-phrases.click.v1'
     var COLLAPSE_KEY = 'dsh.quick-phrases.collapsed.v1'
     var AUTOHIDE_KEY = 'dsh.quick-phrases.autohide.v1'
+    var HIDDEN_KEY = 'dsh.quick-phrases.hidden.v1'
     var SECTION_ID = 'quick-phrases'
     var DOCK_ORDER = 5
     var SECTION_ORDER = 26
@@ -100,7 +101,9 @@ window.__ModuleLoader__.load({
         'manager.clickInsert': '填入输入框',
         'manager.clickHint': '「直接发送」在输入框为空时一次点按就发出这条短语；输入框里已有文字或附件时会改为插到光标处，不会覆盖你正在写的内容。',
         'manager.visible': '显示短语行',
-        'manager.visibleHint': '关掉后输入框旁只留一个小胶囊，点一下就能重新展开。',
+        'manager.visibleHint': '关掉后整排会从界面彻底消失，连小胶囊都不留；之后只能在「设置 → 快捷短语」里重新打开。',
+        'manager.visibleHintOff': '整排已完全隐藏，界面里不再显示任何按钮或胶囊。重新打开请在「设置 → 快捷短语」里打开这个开关。',
+        'manager.rowHiddenBadge': '整排已隐藏',
         'manager.autoHide': '输入框有内容时',
         'manager.autoHideFold': '自动收起',
         'manager.autoHideKeep': '保持显示',
@@ -159,7 +162,9 @@ window.__ModuleLoader__.load({
         'manager.clickInsert': 'Fill the composer',
         'manager.clickHint': '“Send right away” fires the phrase with one click while the composer is empty; when it already holds text or attachments the phrase is inserted at the caret instead, so nothing you were writing is lost.',
         'manager.visible': 'Show the phrase row',
-        'manager.visibleHint': 'When off, only a small pill stays next to the composer; click it to bring the row back.',
+        'manager.visibleHint': 'When off, the row disappears from the UI completely — not even the small pill stays. It can only be turned back on in Settings → Quick phrases.',
+        'manager.visibleHintOff': 'The whole row is hidden: no chips and no pill are rendered anywhere. Turn this switch back on under Settings → Quick phrases to restore it.',
+        'manager.rowHiddenBadge': 'Row hidden',
         'manager.autoHide': 'When the composer has text',
         'manager.autoHideFold': 'Fold automatically',
         'manager.autoHideKeep': 'Keep it visible',
@@ -471,7 +476,8 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
-     * Visibility: the row folds into a pill, and the manager can turn it off.
+     * Visibility: the row folds into a pill, and the manager can hide it
+     * entirely (no pill, nothing rendered; only Settings brings it back).
      * ------------------------------------------------------------------ */
 
     /**
@@ -540,6 +546,7 @@ window.__ModuleLoader__.load({
 
     var collapseStore = makeEnumStore(COLLAPSE_KEY, ['0', '1'], '0', 'collapsed state')
     var autoHideStore = makeEnumStore(AUTOHIDE_KEY, AUTO_HIDE_MODES, DEFAULT_AUTO_HIDE, 'auto-hide mode')
+    var hiddenStore = makeEnumStore(HIDDEN_KEY, ['0', '1'], '0', 'row hidden state')
 
     function useCollapsed() {
       return collapseStore.use() === '1'
@@ -555,6 +562,15 @@ window.__ModuleLoader__.load({
 
     function setAutoHide(value) {
       autoHideStore.set(value)
+    }
+
+    /** `true` while the manager keeps the whole row out of the UI. */
+    function useHidden() {
+      return hiddenStore.use() === '1'
+    }
+
+    function setHidden(value) {
+      hiddenStore.set(value ? '1' : '0')
     }
 
     /* ------------------------------------------------------------------ *
@@ -628,6 +644,10 @@ window.__ModuleLoader__.load({
       '.dqp-row-muted .dqp-body{opacity:.55}' +
       '.dqp-badge-hidden{margin-left:2px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
       'background:transparent;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
+      '.dqp-option-label-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px}' +
+      '.dqp-badge-row-hidden{margin-left:0;padding:0 7px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
+      'background:transparent;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
+      '.dqp-option-hint-warn{color:var(--dsw-alias-state-warn-primary,#e0a33a)}' +
       '.dqp-eye-off{color:var(--dsw-alias-label-caption,#7d7d7d)}' +
       '.dqp-eye-off:hover:not(:disabled){color:var(--dsw-alias-label-primary,#eee)}' +
       '.dqp-section{display:flex;flex-direction:column;gap:10px}' +
@@ -756,6 +776,7 @@ window.__ModuleLoader__.load({
         var attachments = typeof props.useInput === 'function' ? props.useInput(attachmentCountOf) : 0
         var collapsed = useCollapsed()
         var autoHide = useAutoHide()
+        var hidden = useHidden()
         var peekState = React.useState(false)
         var peeked = peekState[0]
         var setPeeked = peekState[1]
@@ -781,6 +802,11 @@ window.__ModuleLoader__.load({
         }, [])
 
         if (current !== spec.value) return null
+
+        // A completely hidden row leaves nothing on screen — no chips, no pill,
+        // not even an empty wrapper. It wins over the folded state, so a row the
+        // user hid while folded cannot come back as a pill on the next render.
+        if (hidden) return null
 
         function insertIntoCaret(phrase) {
           if (typeof inputActions.captureInsertion === 'function' && typeof inputActions.insertText === 'function') {
@@ -906,7 +932,7 @@ window.__ModuleLoader__.load({
       var phrases = usePhrases(t)
       var placementNow = usePlacement()
       var clickNow = useClickMode()
-      var collapsed = useCollapsed()
+      var rowHidden = useHidden()
       var autoHideNow = useAutoHide()
 
       var resetState = React.useState(false)
@@ -1136,17 +1162,34 @@ window.__ModuleLoader__.load({
 
       var visibleOption = h('div', { className: 'dqp-option' },
         h('div', { className: 'dqp-option-text' },
-          h('span', { className: 'dqp-option-label', id: 'dqp-visible-label' }, t('manager.visible')),
-          h('span', { className: 'dqp-option-hint' }, t('manager.visibleHint')),
+          h('div', { className: 'dqp-option-label-row' },
+            h('span', { className: 'dqp-option-label', id: 'dqp-visible-label' }, t('manager.visible')),
+            rowHidden
+              ? h('span', { className: 'dqp-badge dqp-badge-row-hidden' }, t('manager.rowHiddenBadge'))
+              : null,
+          ),
+          h('span', {
+            className: 'dqp-option-hint' + (rowHidden ? ' dqp-option-hint-warn' : ''),
+          }, rowHidden ? t('manager.visibleHintOff') : t('manager.visibleHint')),
         ),
         h('button', {
           type: 'button',
           id: 'dqp-visible',
-          className: 'dqp-switch' + (collapsed ? '' : ' dqp-switch-on'),
+          className: 'dqp-switch' + (rowHidden ? '' : ' dqp-switch-on'),
           role: 'switch',
-          'aria-checked': !collapsed,
+          'aria-checked': !rowHidden,
           'aria-labelledby': 'dqp-visible-label',
-          onClick: function () { setCollapsed(!collapsed) },
+          onClick: function () {
+            // Off means "gone from the UI": nothing renders, not even the pill.
+            // On always lands on the full row, so a folded state left behind by
+            // the 收起 chip is cleared at the same time.
+            if (rowHidden) {
+              setHidden(false)
+              setCollapsed(false)
+              return
+            }
+            setHidden(true)
+          },
         }, h('span', { className: 'dqp-switch-thumb' })),
       )
 

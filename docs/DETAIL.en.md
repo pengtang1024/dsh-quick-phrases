@@ -25,29 +25,33 @@ All three rows stay registered, but only the selected one renders — switching 
 
 ## Folding and hiding
 
-The row should never get in the way of typing, so it can fold in two ways:
+The row should never get in the way of typing, so it can fold on demand and its resting shape is a setting:
 
 - **Fold by hand**: click `收起 ▾` at the end of the row and it collapses into a small `▸ 快捷短语` pill; click the pill to expand it temporarily, and 「收起」 to fold it again.
 - **Fold automatically** (default): with "When the composer has text" set to "Fold automatically", the row collapses into the pill as soon as the composer holds text or attachments, and expands again once the draft is cleared. Pick "Keep it visible" to keep the full row instead.
 
 Clicking a phrase after expanding the pill behaves exactly as before: when the composer already has content the text is inserted at the caret instead of replacing it.
 
+The **Phrase row** dropdown in Settings turns the resting shape into a three-way choice:
+
+- **Show the full row**: the whole row stays, and the fold chip still folds it temporarily;
+- **Fold into a pill**: only the small pill remains next to the composer; click it to expand;
+- **Hide completely**: the row leaves the UI entirely — **not even the pill stays**, nothing at all is rendered. The only way back is Settings → Quick phrases, where the dropdown is marked "Row hidden"; choosing "Show the full row" there also clears any leftover folded state and restores the full row.
+
+The `收起 ▾` chip is equivalent to picking "Fold into a pill". This dropdown stores no state of its own: its value is derived from `dsh.quick-phrases.hidden.v1` (which wins) and `dsh.quick-phrases.collapsed.v1`, and switching composes writes to those two existing keys.
+
 A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back.
-
-Folding and hiding the whole row are two different things:
-
-- **Folding** only shrinks the row into the small pill, which stays next to the composer; click it to expand.
-- **Hiding completely** is what the "Show the phrase row" switch does when turned off: the row leaves the UI entirely — **not even the pill stays**, nothing at all is rendered. The only way back is Settings → Quick phrases, where the switch is marked "Row hidden"; turning it on also clears any leftover folded state and restores the full row.
 
 ## Managing phrases
 
-Open **Settings → Quick phrases**. The page has two layers: behaviour options on top, the phrase list below.
+Open **Settings → Quick phrases**. The page has two layers: five behaviour options on top, the phrase list below.
 
 **Behaviour options** (applied on selection):
 
 - **Position**: switch between the three positions above.
 - **On click**: pick "Send right away" or "Fill the composer"; the default is sending right away.
-- **Show the phrase row**: switch the whole row on or off. Off hides it completely — nothing at all is rendered, not even the pill — and only this page can bring it back; turning it on also clears the folded state so the full row returns.
+- **Phrase row**: a three-way dropdown. **Show the full row** keeps the whole row; **Fold into a pill** leaves only the small expandable pill; **Hide completely** removes the row from the UI entirely (not even the pill), and only this page can bring it back; picking "Show the full row" also clears the folded state.
+- **Manage button**: the style of the "Manage" chip at the end of the row. **Text button** is the current look; **Gear icon** swaps in a settings icon (its accessible name stays "Manage" and clicking behaves the same); **Hidden** renders no manage button while the phrase row keeps working, and this page stays reachable.
 - **When the composer has text**: pick "Fold automatically" (default) or "Keep it visible" to decide whether the row folds into the pill while a draft or attachments exist.
 
 **Phrase list** (one card per phrase):
@@ -60,11 +64,11 @@ Open **Settings → Quick phrases**. The page has two layers: behaviour options 
 - **✕**: the first click only arms the delete ("Confirm"), a second click within four seconds removes the phrase.
 - **Add phrase** appends an empty card and focuses its caption; **Restore defaults** arms on the first click and restores the four built-in phrases on the second.
 
-Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`, the complete-hide state `dsh.quick-phrases.hidden.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it.
+Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`, the complete-hide state `dsh.quick-phrases.hidden.v1`, the manage-entry style `dsh.quick-phrases.manage.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it. The "Phrase row" dropdown adds no key of its own: it reads and writes `hidden.v1` and `collapsed.v1`.
 
 ## Opening it from the composer
 
-The **Manage** chip at the end of the row jumps to the same settings page (expand the pill first when the row is folded). If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
+The **Manage** chip at the end of the row jumps to the same settings page (expand the pill first when the row is folded). It can be switched to a gear icon or hidden in Settings; once hidden the row shows no manage button and Settings → Quick phrases is the way in. If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
 
 ## Styling
 

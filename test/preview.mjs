@@ -155,8 +155,8 @@ const themeCss = fs.existsSync(THEME_CSS)
   : '/* theme tokens not found — set DQP_ASAR to the host app.asar node_modules/@deepseek-ai */'
 const managerHtml = serialize(render('manager', manager, { t }))
 
-/* The completely hidden row must leave the page empty; the manager switch is the
-   only way back, so render that state too instead of trusting it blind. */
+/* The completely hidden row must leave the page empty; the manager dropdown is
+   the only way back, so render that state too instead of trusting it blind. */
 function collectNodes(node, out = []) {
   if (node == null || typeof node !== 'object') return out
   if (Array.isArray(node)) {
@@ -168,19 +168,45 @@ function collectNodes(node, out = []) {
   return out
 }
 const manageProps = { t }
-const visibleSwitch = () =>
+const selectById = (id) =>
   collectNodes(render('preview-manager', manager, manageProps)).find(
-    (n) => n.type === 'button' && n.props.id === 'dqp-visible',
+    (n) => n.type === 'select' && n.props.id === id,
   )
-visibleSwitch().props.onClick()
+const rowModeSelect = () => selectById('dqp-rowmode')
+const manageSelect = () => selectById('dqp-manage')
+assert.ok(rowModeSelect(), 'the manager offers a row-mode dropdown')
+assert.ok(manageSelect(), 'the manager offers a manage-entry dropdown')
+const dockStub = { t, inputActions: { setDraft() {} }, openManager: () => true }
+
+rowModeSelect().props.onChange({ target: { value: 'hidden' } })
 const hiddenManagerHtml = serialize(render('preview-manager-hidden', manager, manageProps))
-const hiddenDockHtml = serialize(render('preview-dock-hidden', dock, {
-  t,
-  inputActions: { setDraft() {} },
-  openManager: () => true,
-}))
+const hiddenDockHtml = serialize(render('preview-dock-hidden', dock, dockStub))
 assert.equal(hiddenDockHtml, '', 'a completely hidden row renders nothing at all')
-visibleSwitch().props.onClick() // back to the visible row for the pages below
+
+// The three row modes and the three manage entries each get a state to look at.
+const buttonsByClass = (tree, className) =>
+  collectNodes(tree).filter(
+    (n) => n.type === 'button' && String(n.props?.className ?? '').includes(className),
+  )
+rowModeSelect().props.onChange({ target: { value: 'pill' } })
+const pillDockHtml = serialize(render('preview-dock-pill', dock, dockStub))
+rowModeSelect().props.onChange({ target: { value: 'full' } })
+const fullDockTree = render('preview-dock-full', dock, dockStub)
+assert.equal(buttonsByClass(fullDockTree, 'dqp-chip-collapse').length, 1, 'the full row keeps the fold chip')
+const fullDockHtml = serialize(fullDockTree)
+
+assert.equal(manageSelect().props.value, 'text', 'the manage entry starts as text')
+manageSelect().props.onChange({ target: { value: 'icon' } })
+const manageIconTree = render('preview-dock-manage-icon', dock, dockStub)
+assert.equal(buttonsByClass(manageIconTree, 'dqp-chip-manage').length, 1, 'the icon manage entry keeps one button')
+assert.ok(collectNodes(manageIconTree).some((n) => n.type === 'svg'), 'the icon manage entry renders an svg')
+const manageIconDockHtml = serialize(manageIconTree)
+manageSelect().props.onChange({ target: { value: 'hidden' } })
+const manageHiddenTree = render('preview-dock-manage-hidden', dock, dockStub)
+assert.equal(buttonsByClass(manageHiddenTree, 'dqp-chip-manage').length, 0, 'the hidden manage entry renders no manage chip')
+assert.equal(buttonsByClass(manageHiddenTree, 'dqp-chip').length, 5, 'the phrases and the fold chip still render')
+const manageHiddenDockHtml = serialize(manageHiddenTree)
+manageSelect().props.onChange({ target: { value: 'text' } }) // back to the default for the pages below
 
 const PAGE_CSS = `
   html, body { margin: 0; padding: 0; }
@@ -218,6 +244,32 @@ ${hiddenManagerHtml}
   const file = '/tmp/dqp-hidden-' + (dark ? 'dark' : 'light') + '.html'
   fs.writeFileSync(file, html)
   console.log('wrote', file, html.length + ' bytes')
+}
+
+/* Row-mode / manage-entry showcase: the three visibility states of the row and
+   the three manage entries, so the new dropdowns can be eyeballed. */
+for (const dark of [true, false]) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}
+    body { padding: 16px; }
+    .composer { max-width: 640px; border-radius: 22px; padding: 14px 16px 10px; background: var(--dsw-alias-bg-layer-1, #262626); box-shadow: inset 0 0 0 .5px var(--dsw-alias-border-l2, #444); }
+    .line { height: 34px; color: var(--dsw-alias-label-caption, #7d7d7d); }
+    .status { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--dsw-alias-label-caption, #7d7d7d); }
+  </style></head>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="stage-label">界面示意图 · 短语行显示：显示整排（${dark ? '深色' : '浅色'}）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${fullDockHtml}</div></div>
+<p class="stage-label">界面示意图 · 短语行显示：收成胶囊</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${pillDockHtml}</div></div>
+<p class="stage-label">界面示意图 · 短语行显示：彻底隐藏（这里什么都不渲染，连胶囊都没有）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${hiddenDockHtml}</div></div>
+<p class="stage-label">界面示意图 · 管理入口：齿轮图标</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${manageIconDockHtml}</div></div>
+<p class="stage-label">界面示意图 · 管理入口：隐藏（短语行仍然可用）</p><div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>
+<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${manageHiddenDockHtml}</div></div>
+</body></html>`
+  const file = '/tmp/dqp-modes-' + (dark ? 'dark' : 'light') + '.html'
+  fs.writeFileSync(file, html)
+  console.log('wrote', file)
 }
 
 /* Chips-only page: same row, in both themes, for a close look at the composer surface. */

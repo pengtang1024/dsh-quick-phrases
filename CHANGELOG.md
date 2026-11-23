@@ -1,5 +1,14 @@
 # 变更记录
 
+## 0.6.0
+
+- **短语行三态下拉**：设置里原来的「显示短语行」开关换成 `短语行显示` 下拉，直接选 **显示整排** / **收成胶囊** / **彻底隐藏**。值由既有键推导（`hidden` 优先，其次 `collapsed`），切换时组合写 `dsh.quick-phrases.hidden.v1` 与 `dsh.quick-phrases.collapsed.v1`，**不新增第四套状态键**；选「彻底隐藏」时仍保留「整排已隐藏」徽标与恢复提示。
+- **管理入口可配置**：新增 `管理入口` 下拉（新键 `dsh.quick-phrases.manage.v1`，值 `text` / `icon` / `hidden`，默认 `text`）：文字「管理」chip、齿轮 `svg` 图标（无障碍名称仍是「管理」，点击行为不变），或从行尾完全隐藏。隐藏后管理页仍从 **设置 → 快捷短语** 进入，下拉 hint 写明了这一点。
+- 新存储键复用 `makeEnumStore`，读写白名单校验与旧键一致；「短语行显示」不占新键。
+- 中英字典对称：新增 rowmode / manage 三组选项名与 hint，替换旧的 `manager.visible*` 键；`test/smoke.mjs` 增加 zh/en 键集合完全对称的断言。
+- `test/smoke.mjs` 覆盖三态短语行（默认 full、pill 写 `collapsed='1'` 且只剩胶囊、hidden 写 `hidden='1'` 且整排为 `null`、full 把两键写回 `'0'` 并恢复六个 chip）与三态管理入口（text / icon 含 svg 且无文字 / hidden 无管理 chip 但短语 chips 仍在，分别持久化到 `manage.v1`）；原有收起、自动收起、单条隐藏用例保持通过。
+- `test/preview.mjs` 跟着新的下拉渲染，新增 `/tmp/dqp-modes-*.html` 三态短语行 + 三态管理入口状态页；README、`docs/DETAIL*.md`、`docs/ARCHITECTURE.md` 同步。
+
 ## 0.5.0
 
 - **整排可彻底隐藏**：设置里的「显示短语行」开关关掉后，短语行从界面**完全消失**——不再留小胶囊，也不占位，界面上什么都不显示。只有回到 **设置 → 快捷短语** 重新打开开关才恢复，开关旁标注「整排已隐藏」并说明恢复路径（中英对称）。

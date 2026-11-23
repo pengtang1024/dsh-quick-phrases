@@ -30,6 +30,7 @@ window.__ModuleLoader__.load({
     var COLLAPSE_KEY = 'dsh.quick-phrases.collapsed.v1'
     var AUTOHIDE_KEY = 'dsh.quick-phrases.autohide.v1'
     var HIDDEN_KEY = 'dsh.quick-phrases.hidden.v1'
+    var MANAGE_KEY = 'dsh.quick-phrases.manage.v1'
     var SECTION_ID = 'quick-phrases'
     var DOCK_ORDER = 5
     var SECTION_ORDER = 26
@@ -66,6 +67,21 @@ window.__ModuleLoader__.load({
     var AUTO_HIDE_MODES = ['fold', 'keep']
     var DEFAULT_AUTO_HIDE = 'fold'
 
+    /**
+     * What the end of the row shows for opening the manager: the original text
+     * chip, a gear icon keeping the same accessible name, or nothing at all
+     * (Settings → Quick phrases is still reachable).
+     */
+    var MANAGE_MODES = ['text', 'icon', 'hidden']
+    var DEFAULT_MANAGE = 'text'
+
+    /**
+     * The settings dropdown that exposes the row's two visibility toggles as one
+     * three-way choice. There is deliberately no storage key of its own: the
+     * value is derived from `hidden` (wins) and `collapsed`.
+     */
+    var ROW_MODES = ['full', 'pill', 'hidden']
+
     var DICTS = {
       zh: {
         'section.title': '快捷短语',
@@ -100,10 +116,18 @@ window.__ModuleLoader__.load({
         'manager.clickSend': '直接发送',
         'manager.clickInsert': '填入输入框',
         'manager.clickHint': '「直接发送」在输入框为空时一次点按就发出这条短语；输入框里已有文字或附件时会改为插到光标处，不会覆盖你正在写的内容。',
-        'manager.visible': '显示短语行',
-        'manager.visibleHint': '关掉后整排会从界面彻底消失，连小胶囊都不留；之后只能在「设置 → 快捷短语」里重新打开。',
-        'manager.visibleHintOff': '整排已完全隐藏，界面里不再显示任何按钮或胶囊。重新打开请在「设置 → 快捷短语」里打开这个开关。',
+        'manager.rowMode': '短语行显示',
+        'manager.rowModeFull': '显示整排',
+        'manager.rowModePill': '收成胶囊',
+        'manager.rowModeHidden': '彻底隐藏',
+        'manager.rowModeHint': '控制短语行出现的形态：「收成胶囊」只留一个可展开的小胶囊；「彻底隐藏」把整排从界面移除，连胶囊都不留。输入框有内容时是否自动收起由下面一项决定。',
+        'manager.rowModeHintOff': '整排已完全隐藏，界面里不再显示任何按钮或胶囊。把这一项改回「显示整排」或「收成胶囊」即可恢复，不必重启。',
         'manager.rowHiddenBadge': '整排已隐藏',
+        'manager.manageEntry': '管理入口',
+        'manager.manageText': '文字按钮',
+        'manager.manageIcon': '齿轮图标',
+        'manager.manageHidden': '隐藏入口',
+        'manager.manageHint': '短语行末尾的「管理」可以保持文字、换成齿轮图标，或直接隐藏；隐藏后只能从「设置 → 快捷短语」进入管理。',
         'manager.autoHide': '输入框有内容时',
         'manager.autoHideFold': '自动收起',
         'manager.autoHideKeep': '保持显示',
@@ -161,10 +185,18 @@ window.__ModuleLoader__.load({
         'manager.clickSend': 'Send right away',
         'manager.clickInsert': 'Fill the composer',
         'manager.clickHint': '“Send right away” fires the phrase with one click while the composer is empty; when it already holds text or attachments the phrase is inserted at the caret instead, so nothing you were writing is lost.',
-        'manager.visible': 'Show the phrase row',
-        'manager.visibleHint': 'When off, the row disappears from the UI completely — not even the small pill stays. It can only be turned back on in Settings → Quick phrases.',
-        'manager.visibleHintOff': 'The whole row is hidden: no chips and no pill are rendered anywhere. Turn this switch back on under Settings → Quick phrases to restore it.',
+        'manager.rowMode': 'Phrase row',
+        'manager.rowModeFull': 'Show the full row',
+        'manager.rowModePill': 'Fold into a pill',
+        'manager.rowModeHidden': 'Hide completely',
+        'manager.rowModeHint': 'Controls the shape of the row: “Fold into a pill” leaves one expandable pill, while “Hide completely” removes the whole row, pill included. The option below still decides whether a draft folds it automatically.',
+        'manager.rowModeHintOff': 'The whole row is completely hidden: no chips and no pill are rendered anywhere. Switch this back to “Show the full row” or “Fold into a pill” to restore it — no restart needed.',
         'manager.rowHiddenBadge': 'Row hidden',
+        'manager.manageEntry': 'Manage button',
+        'manager.manageText': 'Text button',
+        'manager.manageIcon': 'Gear icon',
+        'manager.manageHidden': 'Hidden',
+        'manager.manageHint': 'The “Manage” chip at the end of the row can stay text, become a gear icon, or be left out entirely; once hidden it can only be reached in Settings → Quick phrases.',
         'manager.autoHide': 'When the composer has text',
         'manager.autoHideFold': 'Fold automatically',
         'manager.autoHideKeep': 'Keep it visible',
@@ -547,6 +579,7 @@ window.__ModuleLoader__.load({
     var collapseStore = makeEnumStore(COLLAPSE_KEY, ['0', '1'], '0', 'collapsed state')
     var autoHideStore = makeEnumStore(AUTOHIDE_KEY, AUTO_HIDE_MODES, DEFAULT_AUTO_HIDE, 'auto-hide mode')
     var hiddenStore = makeEnumStore(HIDDEN_KEY, ['0', '1'], '0', 'row hidden state')
+    var manageStore = makeEnumStore(MANAGE_KEY, MANAGE_MODES, DEFAULT_MANAGE, 'manage entry mode')
 
     function useCollapsed() {
       return collapseStore.use() === '1'
@@ -571,6 +604,42 @@ window.__ModuleLoader__.load({
 
     function setHidden(value) {
       hiddenStore.set(value ? '1' : '0')
+    }
+
+    /** `text` | `icon` | `hidden`, default `text`. */
+    function useManageEntry() {
+      return manageStore.use()
+    }
+
+    function setManageEntry(value) {
+      manageStore.set(value)
+    }
+
+    /** Derives the settings dropdown value: hidden wins over a leftover fold. */
+    function rowModeOf(hidden, collapsed) {
+      if (hidden) return 'hidden'
+      if (collapsed) return 'pill'
+      return 'full'
+    }
+
+    /**
+     * Writes the two existing keys instead of adding a third. `full` and `pill`
+     * clear the hidden flag first; `hidden` leaves the collapsed value alone so
+     * a folded row cannot reappear as a pill while it is hidden.
+     */
+    function setRowMode(mode) {
+      if (mode === 'hidden') {
+        setHidden(true)
+        return
+      }
+      if (mode === 'pill') {
+        setHidden(false)
+        setCollapsed(true)
+        return
+      }
+      if (mode !== 'full') return
+      setHidden(false)
+      setCollapsed(false)
     }
 
     /* ------------------------------------------------------------------ *
@@ -598,6 +667,8 @@ window.__ModuleLoader__.load({
       '.dqp-chip:active{background:var(--dsw-alias-interactive-bg-hover-solid,rgba(255,255,255,.12))}' +
       '.dqp-chip:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
       '.dqp-chip-manage{color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
+      '.dqp-chip-manage-icon{padding:0 7px}' +
+      '.dqp-chip-manage svg{display:block}' +
       '.dqp-chip-collapse{color:var(--dsw-alias-label-caption,#7d7d7d);border-style:dashed;background:transparent}' +
       '.dqp-chip-collapse:hover{color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
       '.dqp-pill{gap:4px;color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
@@ -631,16 +702,6 @@ window.__ModuleLoader__.load({
       'color:var(--dsw-alias-label-primary,#eee);font:inherit;font-size:12px;line-height:1;appearance:none;-webkit-appearance:none;cursor:pointer}' +
       '.dqp-select:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08))}' +
       '.dqp-select:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:1px}' +
-      '.dqp-switch{box-sizing:border-box;position:relative;flex:0 0 auto;width:36px;height:20px;padding:0;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
-      'border-radius:999px;background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.06));cursor:pointer;' +
-      'transition:background-color .15s ease,border-color .15s ease}' +
-      '.dqp-switch:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.1))}' +
-      '.dqp-switch:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
-      '.dqp-switch-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;' +
-      'background:var(--dsw-alias-label-tertiary,#9a9a9a);transition:transform .15s ease,background-color .15s ease}' +
-      '.dqp-switch-on{border-color:transparent;background:var(--dsw-alias-button-primary-fill,#4c6fff)}' +
-      '.dqp-switch-on:hover{background:var(--dsw-alias-button-primary-hover,#3f5fe0)}' +
-      '.dqp-switch-on .dqp-switch-thumb{transform:translateX(16px);background:var(--dsw-alias-label-primary-foreground,#fff)}' +
       '.dqp-row-muted .dqp-body{opacity:.55}' +
       '.dqp-badge-hidden{margin-left:2px;border:.5px solid var(--dsw-alias-border-l2,#494949);' +
       'background:transparent;color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
@@ -777,6 +838,7 @@ window.__ModuleLoader__.load({
         var collapsed = useCollapsed()
         var autoHide = useAutoHide()
         var hidden = useHidden()
+        var manageEntry = useManageEntry()
         var peekState = React.useState(false)
         var peeked = peekState[0]
         var setPeeked = peekState[1]
@@ -908,12 +970,23 @@ window.__ModuleLoader__.load({
             },
             t('dock.collapse'),
             h('span', { className: 'dqp-caret', 'aria-hidden': true }, '\u25be')),
-            h('button', {
+            manageEntry === 'hidden' ? null : h('button', {
               key: 'manage',
               type: 'button',
-              className: 'dqp-chip dqp-chip-manage',
+              className: 'dqp-chip dqp-chip-manage' + (manageEntry === 'icon' ? ' dqp-chip-manage-icon' : ''),
+              title: t('dock.manage'),
+              'aria-label': t('dock.manage'),
               onClick: handleManage,
-            }, t('dock.manage')),
+            }, manageEntry === 'icon'
+              ? h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
+                  h('circle', { cx: 12, cy: 12, r: 3, stroke: 'currentColor', strokeWidth: 1.6 }),
+                  h('path', {
+                    d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z',
+                    stroke: 'currentColor',
+                    strokeWidth: 1.4,
+                    strokeLinejoin: 'round',
+                  }))
+              : t('dock.manage')),
           ))
         }
         if (showHint[0]) {
@@ -933,6 +1006,9 @@ window.__ModuleLoader__.load({
       var placementNow = usePlacement()
       var clickNow = useClickMode()
       var rowHidden = useHidden()
+      var rowFolded = useCollapsed()
+      var rowMode = rowModeOf(rowHidden, rowFolded)
+      var manageNow = useManageEntry()
       var autoHideNow = useAutoHide()
 
       var resetState = React.useState(false)
@@ -1160,37 +1236,51 @@ window.__ModuleLoader__.load({
         ),
       )
 
-      var visibleOption = h('div', { className: 'dqp-option' },
+      var rowModeOption = h('div', { className: 'dqp-option' },
         h('div', { className: 'dqp-option-text' },
           h('div', { className: 'dqp-option-label-row' },
-            h('span', { className: 'dqp-option-label', id: 'dqp-visible-label' }, t('manager.visible')),
+            h('label', { className: 'dqp-option-label', htmlFor: 'dqp-rowmode' }, t('manager.rowMode')),
             rowHidden
               ? h('span', { className: 'dqp-badge dqp-badge-row-hidden' }, t('manager.rowHiddenBadge'))
               : null,
           ),
           h('span', {
             className: 'dqp-option-hint' + (rowHidden ? ' dqp-option-hint-warn' : ''),
-          }, rowHidden ? t('manager.visibleHintOff') : t('manager.visibleHint')),
+          }, rowHidden ? t('manager.rowModeHintOff') : t('manager.rowModeHint')),
         ),
-        h('button', {
-          type: 'button',
-          id: 'dqp-visible',
-          className: 'dqp-switch' + (rowHidden ? '' : ' dqp-switch-on'),
-          role: 'switch',
-          'aria-checked': !rowHidden,
-          'aria-labelledby': 'dqp-visible-label',
-          onClick: function () {
-            // Off means "gone from the UI": nothing renders, not even the pill.
-            // On always lands on the full row, so a folded state left behind by
-            // the 收起 chip is cleared at the same time.
-            if (rowHidden) {
-              setHidden(false)
-              setCollapsed(false)
-              return
-            }
-            setHidden(true)
+        h('div', { className: 'dqp-select-wrap' },
+          h('select', {
+            id: 'dqp-rowmode',
+            className: 'dqp-select',
+            value: rowMode,
+            onChange: function (event) { setRowMode(event.target.value) },
           },
-        }, h('span', { className: 'dqp-switch-thumb' })),
+          ROW_MODES.map(function (value) {
+            return h('option', { key: value, value: value },
+              t(value === 'full' ? 'manager.rowModeFull' : value === 'pill' ? 'manager.rowModePill' : 'manager.rowModeHidden'))
+          }),
+          ),
+        ),
+      )
+
+      var manageOption = h('div', { className: 'dqp-option' },
+        h('div', { className: 'dqp-option-text' },
+          h('label', { className: 'dqp-option-label', htmlFor: 'dqp-manage' }, t('manager.manageEntry')),
+          h('span', { className: 'dqp-option-hint' }, t('manager.manageHint')),
+        ),
+        h('div', { className: 'dqp-select-wrap' },
+          h('select', {
+            id: 'dqp-manage',
+            className: 'dqp-select',
+            value: manageNow,
+            onChange: function (event) { setManageEntry(event.target.value) },
+          },
+          MANAGE_MODES.map(function (value) {
+            return h('option', { key: value, value: value },
+              t(value === 'text' ? 'manager.manageText' : value === 'icon' ? 'manager.manageIcon' : 'manager.manageHidden'))
+          }),
+          ),
+        ),
       )
 
       var autoHideOption = h('div', { className: 'dqp-option' },
@@ -1222,7 +1312,7 @@ window.__ModuleLoader__.load({
             ),
             h('span', { className: 'dqp-badge' }, t('manager.count').replace('{n}', String(phrases.length))),
           ),
-          h('div', { className: 'dqp-options' }, placementOption, clickOption, visibleOption, autoHideOption),
+          h('div', { className: 'dqp-options' }, placementOption, clickOption, rowModeOption, manageOption, autoHideOption),
           h('div', { className: 'dqp-section' },
             h('div', { className: 'dqp-section-head' },
               h('h3', { className: 'dqp-section-title' }, t('manager.phrases')),

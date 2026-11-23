@@ -116,6 +116,11 @@ plugin.apply(makeCtx())
 assert.equal(dictsSeen[0].ns, 'dsh-quick-phrases')
 assert.equal(dictsSeen[0].zh['section.title'], '快捷短语', 'zh dictionary registered')
 assert.equal(typeof dictsSeen[0].en['section.title'], 'string', 'en dictionary registered')
+assert.deepEqual(
+  Object.keys(dictsSeen[0].en).sort(),
+  Object.keys(dictsSeen[0].zh).sort(),
+  'zh and en dictionaries carry exactly the same keys',
+)
 assert.deepEqual(injectedKeys, [
   'conversation.composer.dock',
   'conversation.input.dock',
@@ -377,7 +382,7 @@ placementPicker.props.onChange({ target: { value: 'composer-dock' } })
 assert.equal(placementStored(), 'composer-dock', 'the position can be switched back')
 assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 6)
 
-/* ---------------- manager: the visibility switch and per-phrase hiding ---------------- */
+/* ---------------- manager: the three-state row mode and per-phrase hiding ---------------- */
 
 const stored = () => JSON.parse(localStorage.getItem('dsh.quick-phrases.v1'))
 
@@ -387,29 +392,57 @@ assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
 const hiddenStored = () => localStorage.getItem('dsh.quick-phrases.hidden.v1')
 assert.equal(hiddenStored(), null, 'the row is not hidden by default')
 
-const visibilitySwitch = () =>
-  walk(render('manager', sectionReg.component, { t })).find(
-    (n) => n.type === 'button' && n.props.id === 'dqp-visible',
-  )
-assert.ok(visibilitySwitch(), 'the manager offers a row-visibility switch')
-assert.equal(visibilitySwitch().props.role, 'switch')
-assert.equal(visibilitySwitch().props['aria-checked'], true, 'the row starts visible')
+const rowModeSelect = () =>
+  selectById(render('manager', sectionReg.component, { t }), 'dqp-rowmode')
+assert.ok(rowModeSelect(), 'the manager offers a three-state row-mode dropdown')
+assert.equal(rowModeSelect().props.value, 'full', 'the row starts as the full row')
+assert.deepEqual(
+  walk(rowModeSelect()).filter((n) => n.type === 'option').map((n) => n.props.value),
+  ['full', 'pill', 'hidden'],
+  'three row modes are offered',
+)
+assert.equal(
+  byClass(render('dock-default-row', dockReg.component, dockProps), 'dqp-chip').length,
+  6,
+  'the default row mode renders all six chips',
+)
 
 // The 收起 chip keeps its old meaning: one pill, the row is still there.
 byClass(render('dock', dockReg.component, dockProps), 'dqp-chip-collapse')[0].props.onClick()
 assert.equal(collapseStored(), '1', 'the 收起 chip still folds the row into a pill')
 assert.equal(hiddenStored(), null, 'folding does not write the hidden state')
 assert.equal(byClass(render('dock-pill-again', dockReg.component, dockProps), 'dqp-chip').length, 1)
+assert.equal(rowModeSelect().props.value, 'pill', 'the dropdown derives pill from the folded state')
 
-// Off means gone: no chips, no pill, no placeholder at all.
-visibilitySwitch().props.onClick()
-assert.equal(hiddenStored(), '1', 'the switch persists a complete hide')
+// The dropdown writes both underlying keys; full clears any leftover state.
+rowModeSelect().props.onChange({ target: { value: 'full' } })
+assert.equal(hiddenStored(), null, 'choosing full from a merely folded row leaves no hidden value')
+assert.equal(collapseStored(), '0', 'choosing full clears the folded key')
+assert.equal(rowModeSelect().props.value, 'full', 'the dropdown reflects the stored state')
+assert.equal(
+  byClass(render('dock-full-again', dockReg.component, dockProps), 'dqp-chip').length,
+  6,
+  'choosing full brings the whole row back',
+)
+
+// Pill is the 收起 state, persisted in the existing collapsed key.
+rowModeSelect().props.onChange({ target: { value: 'pill' } })
+assert.equal(collapseStored(), '1', 'choosing pill folds the row')
+assert.notEqual(hiddenStored(), '1', 'choosing pill never hides the row')
+const pillModeDock = byClass(render('dock-pill-mode', dockReg.component, dockProps), 'dqp-chip')
+assert.equal(pillModeDock.length, 1, 'pill mode renders a single chip')
+assert.ok(pillModeDock[0].props.className.includes('dqp-pill'), 'that chip is the pill')
+
+// Hidden means gone: no chips, no pill, no placeholder at all.
+rowModeSelect().props.onChange({ target: { value: 'hidden' } })
+assert.equal(hiddenStored(), '1', 'choosing hidden persists the complete hide')
+assert.equal(collapseStored(), '1', 'choosing hidden leaves the folded key exactly as it was')
 assert.equal(
   render('dock-hidden-row', dockReg.component, dockProps),
   null,
   'a hidden row renders absolutely nothing — not even the pill',
 )
-assert.equal(visibilitySwitch().props['aria-checked'], false, 'the switch reflects the hidden row')
+assert.equal(rowModeSelect().props.value, 'hidden', 'the dropdown reflects the hidden row')
 
 const hiddenManager = render('manager', sectionReg.component, { t })
 assert.ok(
@@ -417,18 +450,77 @@ assert.ok(
   'the manager marks the whole row as hidden',
 )
 assert.ok(
-  walk(hiddenManager).some((n) => typeof n === 'string' && n === t('manager.visibleHintOff')),
+  walk(hiddenManager).some((n) => typeof n === 'string' && n === t('manager.rowModeHintOff')),
   'the manager explains where the row can be restored',
 )
 
-// Settings is the only way back; opening it also clears the leftover fold.
-visibilitySwitch().props.onClick()
-assert.equal(hiddenStored(), '0', 'the switch brings the row back')
+// Choosing pill while hidden clears the hidden flag instead of leaving it stuck.
+rowModeSelect().props.onChange({ target: { value: 'pill' } })
+assert.equal(hiddenStored(), '0', 'pill clears the hidden key')
+assert.equal(collapseStored(), '1', 'pill folds the row even when it was hidden')
+assert.equal(
+  byClass(render('dock-pill-from-hidden', dockReg.component, dockProps), 'dqp-chip').length,
+  1,
+  'the hidden row can come back as a pill',
+)
+
+// Settings is the only way back; full also clears the leftover fold.
+rowModeSelect().props.onChange({ target: { value: 'full' } })
+assert.equal(hiddenStored(), '0', 'the dropdown brings the row back')
 assert.equal(collapseStored(), '0', 'bringing the row back clears a folded state')
 assert.equal(
   byClass(render('dock-switch', dockReg.component, dockProps), 'dqp-chip').length,
   6,
   'the whole row is back',
+)
+
+/* ---------------- manager: the manage entry can be text, icon or hidden ---------------- */
+
+const manageStored = () => localStorage.getItem('dsh.quick-phrases.manage.v1')
+assert.equal(manageStored(), null, 'the manage entry defaults to text without writing a key')
+
+const manageSelect = () =>
+  selectById(render('manager', sectionReg.component, { t }), 'dqp-manage')
+assert.ok(manageSelect(), 'the manager offers a manage-entry dropdown')
+assert.equal(manageSelect().props.value, 'text', 'the text button is the default entry')
+assert.deepEqual(
+  walk(manageSelect()).filter((n) => n.type === 'option').map((n) => n.props.value),
+  ['text', 'icon', 'hidden'],
+  'three manage entries are offered',
+)
+const textManage = byClass(render('dock-manage-text', dockReg.component, dockProps), 'dqp-chip-manage')
+assert.equal(textManage.length, 1, 'text mode renders the manage chip')
+assert.equal(textOf(textManage[0]).trim(), t('dock.manage'), 'text mode labels the chip 管理')
+
+manageSelect().props.onChange({ target: { value: 'icon' } })
+assert.equal(manageStored(), 'icon', 'the icon mode persists to manage.v1')
+const iconManage = byClass(render('dock-manage-icon', dockReg.component, dockProps), 'dqp-chip-manage')
+assert.equal(iconManage.length, 1, 'icon mode still renders one manage chip')
+assert.ok(walk(iconManage[0]).some((n) => n.type === 'svg'), 'icon mode renders an svg')
+assert.equal(textOf(iconManage[0]).trim(), '', 'icon mode renders no text label')
+assert.equal(iconManage[0].props['aria-label'], t('dock.manage'), 'icon mode keeps the manage accessible name')
+assert.equal(
+  byClass(render('dock-manage-icon-row', dockReg.component, dockProps), 'dqp-chip').length,
+  6,
+  'the phrase chips and the fold chip stay next to the icon',
+)
+
+manageSelect().props.onChange({ target: { value: 'hidden' } })
+assert.equal(manageStored(), 'hidden', 'the hidden entry persists to manage.v1')
+const hiddenManageDock = render('dock-manage-hidden', dockReg.component, dockProps)
+assert.equal(byClass(hiddenManageDock, 'dqp-chip-manage').length, 0, 'hidden mode renders no manage chip')
+assert.equal(
+  byClass(hiddenManageDock, 'dqp-chip').length,
+  5,
+  'the phrase chips and the fold chip still render without the manage chip',
+)
+
+manageSelect().props.onChange({ target: { value: 'text' } })
+assert.equal(manageStored(), 'text', 'the manage entry can be switched back to text')
+assert.equal(
+  byClass(render('dock-manage-text-again', dockReg.component, dockProps), 'dqp-chip-manage').length,
+  1,
+  'the text manage chip comes back',
 )
 
 // One phrase can be hidden without leaving the list: the row stays, the chip goes.
@@ -561,4 +653,4 @@ assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 5, 'dock renders without a
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
-console.log('PASS — click-to-send, dock chips, folding, complete hiding, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — click-to-send, dock chips, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')

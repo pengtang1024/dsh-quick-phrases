@@ -52,7 +52,7 @@ return {
 
 ## 数据层
 
-六个 store 都是模块级状态 + `localStorage`，不经过 Host：
+七个 store 都是模块级状态 + `localStorage`，不经过 Host：
 
 | store | 存储键 | 读写 |
 | --- | --- | --- |
@@ -62,10 +62,13 @@ return {
 | 整排收起 | `dsh.quick-phrases.collapsed.v1` | `'1'` / `'0'`，缺省 `'0'` |
 | 自动收起选项 | `dsh.quick-phrases.autohide.v1` | `'fold'` / `'keep'`，缺省 `'fold'` |
 | 整排彻底隐藏 | `dsh.quick-phrases.hidden.v1` | `'1'` / `'0'`，缺省 `'0'`；`'1'` 时三个位置都不渲染 |
+| 管理入口 | `dsh.quick-phrases.manage.v1` | `'text'` / `'icon'` / `'hidden'`，缺省 `'text'`；`hidden` 时行尾不渲染管理按钮 |
 
-后三个（整排收起 / 自动收起 / 整排彻底隐藏）用同一个工厂 `makeEnumStore(key, values, fallback, label)` 造出来：读取时白名单外的值一律回落 fallback，写入前也做同样校验，所以旧版本留下的脏值或手改的 `localStorage` 不会让界面进入未定义状态。新增一个类似开关时优先复用它，不要再手写第三份 read/ensure/set/use（显示位置 / 点按行为两处仍是手写实现）。
+整排收起 / 自动收起 / 整排彻底隐藏 / 管理入口这四个都用同一个工厂 `makeEnumStore(key, values, fallback, label)` 造出来：读取时白名单外的值一律回落 fallback，写入前也做同样校验，所以旧版本留下的脏值或手改的 `localStorage` 不会让界面进入未定义状态。新增一个类似开关时优先复用它，不要再手写第三份 read/ensure/set/use（显示位置 / 点按行为两处仍是手写实现）。
 
-`usePhrases()` / `usePlacement()` / `useClickMode()` / `useCollapsed()` / `useAutoHide()` / `useHidden()` 是 `useState` + `subscribe` 的小包装，同时监听 `storage` 事件，多窗口之间也能同步。首次使用时按当前界面语言写入四条默认短语。
+设置页的「短语行显示」下拉**没有自己的存储键**：`rowModeOf(hidden, collapsed)` 按 `hidden → 'hidden'`、`collapsed → 'pill'`、否则 `'full'` 推导当前值；`setRowMode(mode)` 组合写两个既有键（`hidden` 优先，选 `full` / `pill` 时先清 `hidden`），所以旧版本、多窗口和「收起」chip 写下的状态始终是同一份真相。
+
+`usePhrases()` / `usePlacement()` / `useClickMode()` / `useCollapsed()` / `useAutoHide()` / `useHidden()` / `useManageEntry()` 是 `useState` + `subscribe` 的小包装，同时监听 `storage` 事件，多窗口之间也能同步。首次使用时按当前界面语言写入四条默认短语。
 
 短语条目里除了 `id` / `label` / `text` 还有一个 `hidden` 布尔值（`normalize()` 缺成 `false`）。短语行渲染前会滤掉 `hidden === true` 的条目，管理页则照常渲染并用 `dqp-row-muted` 变暗、加「已隐藏」徽标。
 
@@ -78,7 +81,9 @@ hasDraft = draft.trim() !== '' || attachments > 0
 folded   = collapsed || (autoHide === 'fold' && hasDraft && !peeked)
 ```
 
-`hidden` 优先于折叠：即使之前用「收起」写过 `collapsed='1'`，隐藏后也不会冒出胶囊。管理页开关打开时同时 `setHidden(false)` 与 `setCollapsed(false)`，直接回到整排。
+`hidden` 优先于折叠：即使之前用「收起」写过 `collapsed='1'`，隐藏后也不会冒出胶囊。设置页下拉选「显示整排」时同时 `setHidden(false)` 与 `setCollapsed(false)`，直接回到整排；选「收成胶囊」写 `hidden='0'`、`collapsed='1'`；选「彻底隐藏」只写 `hidden='1'`。
+
+管理入口在同一个 `DockChips` 里按 `manage.v1` 渲染：`text` 是原来的「管理」文字 chip，`icon` 是同样点击行为的齿轮 `svg`（`aria-label` 仍取 `dock.manage`），`hidden` 连按钮都不渲染。三种模式都不影响短语 chips、「收起」chip 和管理页本身。
 
 `peeked` 是组件内部的临时状态：点胶囊时置 `true` 并同时展开（`setCollapsed(false)`），这样"临时看一眼"不会写进 `localStorage`，草稿清空后 `useEffect` 会把它清掉。手动收起（`setCollapsed(true)`）是持久状态，跨会话保留。
 
@@ -113,9 +118,9 @@ margin: 0 auto;
 
 `test/smoke.mjs` 把真实的 `client.js` 放进 `vm` 沙箱，用最小假 React（按组件名分配 hook 单元）和假 ModuleLoader 跑起来，直接调组件自己的 `onClick` / `onChange`，断言落在 `localStorage` 和渲染树上的结果。改行为时先改这里——它是唯一能在没有宿主的情况下验证「显示与发送分离」「位置切换」「拖动排序」「收起与隐藏」是否还成立的护栏。
 
-与收起/隐藏相关的断言：点「收起」写入 `collapsed.v1='1'` 且只剩 `.dqp-pill`；点胶囊回到 `'0'` 并恢复六个 chip；草稿出现时默认折成胶囊、展开后点第二条仍插到光标处；`autohide` 切到 `keep` 后草稿不再折叠；`#dqp-visible` 关掉后写入 `hidden.v1='1'` 且整排组件返回 `null`（折叠状态下点关也一样，胶囊不回来），管理页显示「整排已隐藏」徽标与恢复提示；再打开后 `hidden='0'`、`collapsed='0'`、六个 chip 全部回来；隐藏一条后短语行少一个 chip、管理页仍是四张卡片且第一张带 `dqp-row-muted`。
+与收起/隐藏相关的断言：点「收起」写入 `collapsed.v1='1'` 且只剩 `.dqp-pill`；点胶囊回到 `'0'` 并恢复六个 chip；草稿出现时默认折成胶囊、展开后点第二条仍插到光标处；`autohide` 切到 `keep` 后草稿不再折叠；`#dqp-rowmode` 默认 `full`、选 `pill` 写 `collapsed='1'` 且 dock 只剩一个 `.dqp-pill`、选 `hidden` 写 `hidden='1'` 且整排组件返回 `null`（连胶囊都没有）、hidden 时改选 `pill` 会清掉 `hidden` 并折回胶囊、再选 `full` 把两个键都写成 `'0'` 并恢复六个 chip；管理页在 hidden 时显示「整排已隐藏」徽标与恢复提示。`#dqp-manage` 默认 `text`（显示「管理」chip）、`icon` 渲染含 `svg` 且无文字、`aria-label` 仍是「管理」、`hidden` 时行尾没有管理 chip 但短语 chips 照常渲染，且三态分别持久化到 `manage.v1`。隐藏一条后短语行少一个 chip、管理页仍是四张卡片且第一张带 `dqp-row-muted`；字典还有一条 zh/en 键集合完全对称的断言。
 
-`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题；它还会渲染「整排完全隐藏」的管理页状态，并断言隐藏时短语行序列化出来是空字符串。`docs/images/` 下的图就是它产出的**界面示意图**（图内带「界面示意图」标题），不是真机截屏。
+`test/preview.mjs` 把组件渲染成静态 HTML，拼上宿主主题 CSS，可用无头 Chromium 截图，用来肉眼核对深浅两套主题；它还会渲染「整排完全隐藏」的管理页状态和三态短语行 / 三态管理入口的状态页（`/tmp/dqp-modes-*.html`），并断言隐藏时短语行序列化出来是空字符串。`docs/images/` 下的图就是它产出的**界面示意图**（图内带「界面示意图」标题），不是真机截屏。
 
 ## 兼容性注意
 

@@ -79,11 +79,40 @@ docs: 补充本地开发与测试说明
 
 一个提交只做一件事；不要顺手格式化无关文件，也不要把临时脚本、截图产物或 `node_modules` 带进提交。
 
-## 分支与 PR
+## Git Flow 分支模型
 
-1. 从 `main` 开分支，命名 `feature/xxx` 或 `fix/xxx`，例如 `feature/manager-drag-reorder`、`fix/dock-alignment`。
+仓库采用 Git Flow：两条长期分支，其余都是短生命周期分支，用完即删。
+
+- **`main`**：发布分支，只放已发布 / 即将发布的代码；每个版本在 `main` 上打 tag。GitHub 默认分支。
+- **`develop`**：开发集成分支，日常改动的目标分支；`main` 上的发布改动必须回灌到这里，否则两条线会分叉。
+
+短生命周期分支的命名规范与流向：
+
+| 类型 | 从哪开 | 合回哪 | 命名 | 用途 |
+|------|--------|--------|------|------|
+| `feature/*` | `develop` | `develop` | `feature/简短描述`，如 `feature/manager-drag-reorder` | 新功能 |
+| `fix/*` | `develop` | `develop` | `fix/简短描述`，如 `fix/dock-alignment` | 非紧急修复 |
+| `release/*` | `develop` | **`main` 和 `develop`（双向）** | `release/vX.Y.Z`，与 tag 同号 | 发布冻结分支，只接受发布相关改动 |
+| `hotfix/*` | `main` | **`main` 和 `develop`（双向）** | `hotfix/vX.Y.Z` 或 `hotfix/简短描述` | 已发布版本的紧急修复 |
+
+分支名一律小写英文 + 连字符（kebab-case），不用空格、下划线或中文。`release/*` 和 `hotfix/*` **必须双向合流**：只合 `main` 不合 `develop`，下个版本会把已经修好的问题又带回 `main`。合并用 `--no-ff` 保留分支拓扑，合完删除该短生命周期分支。
+
+流转示意：
+
+```
+feature/xxx ──PR──> develop
+fix/xxx     ──PR──> develop
+develop ──> release/vX.Y.Z ──PR──> main     （打 SSH 签名 tag）
+                         └──PR──> develop  （回灌）
+main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag）
+                     └──PR──> develop       （回灌）
+```
+
+### 日常开发（feature / fix）
+
+1. 从 `develop` 开分支：`git switch -c feature/xxx develop`（或 `fix/xxx`）。
 2. 改完跑上面的测试，确认 `node test/smoke.mjs` 通过。
-3. 向 `main` 提 PR，按 `.github/PULL_REQUEST_TEMPLATE.md` 填：
+3. 向 **`develop`** 提 PR，按 `.github/PULL_REQUEST_TEMPLATE.md` 填：
    - 变更说明（一句话说清改了什么、为什么）；
    - 关联 issue（`Closes #12`，没有就写「无」）；
    - 变更类型（fix / feat / docs / refactor）；
@@ -92,6 +121,16 @@ docs: 补充本地开发与测试说明
    - 文档是否同步（`docs/DETAIL*.md`、`CHANGELOG.md`）。
 4. 界面改动附深色 / 浅色截图；行为或存储变更说明旧数据如何兼容。
 5. CI 绿、评审通过后再合并；合并前作者自己再跑一遍 smoke。
+
+### 发布与修复（release / hotfix）
+
+- `release/vX.Y.Z` 从 `develop` 开，冻结后只接受发布相关修复；验收通过后分别向 `main` 和 `develop` 提 PR 合入，`main` 合入后打 SSH 签名 tag（见「发布流程」）。
+- `hotfix/*` 从 `main` 开，修完同样双向合回 `main` 和 `develop`，并在 `main` 打 SSH 签名 tag。
+- 不要直推 `main`，不要 force push，不要改写已有 tag。
+
+### 签名约定
+
+**所有版本 tag 必须 SSH 签名**：本仓库已设 `gpg.format=ssh` 并配好 `user.signingkey`，用 `git tag -s vX.Y.Z -m "发布说明"` 打签；**不要用 `git tag -a`**（未签名）。`tag.gpgsign` 未全局开启，所以打 tag 时必须显式带 `-s`。可用 `git tag -v vX.Y.Z` 校验签名。
 
 ## 发布流程
 
@@ -130,7 +169,7 @@ docs: 补充本地开发与测试说明
 
    期望输出 `VALID 1 dsh-quick-phrases { spec: 'dsh-quick-phrases@<版本>' }`；校验器报错会带出错的 JSON 路径。
 
-6. **提交、打 tag、发 Release**：`git add` 精确到文件 → `git commit`（`chore(release): X.Y.Z` 或对应 type）→ `git tag -a vX.Y.Z` → 推 `main` 与 tag → `gh release create`。
+6. **走 Git Flow 合流、打签名 tag、发 Release**：把发布改动提交到 `release/vX.Y.Z`（`git add` 精确到文件 → `git commit`，`chore(release): X.Y.Z` 或对应 type），验收过后分别提 PR 合入 `main` 和 `develop`（双向合流），在 `main` 上用 `git tag -s vX.Y.Z -m "发布说明"` 打 SSH 签名 tag，再推 `main` 与 tag → `gh release create`。紧急修复走 `hotfix/*`，从 `main` 开、同样双向合流。
 
 7. **复核分发**：
 

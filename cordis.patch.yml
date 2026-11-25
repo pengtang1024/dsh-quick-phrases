@@ -3,4 +3,9 @@
 - insert:
     - id: quick-phrases
       name: 'dsh-quick-phrases'
-      config: {}
+      config:
+        placement: composer-dock
+        click: send
+        rowMode: full
+        manage: text
+        autoHide: fold

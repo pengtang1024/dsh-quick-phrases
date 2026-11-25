@@ -1,5 +1,11 @@
 # 变更记录
 
+## 0.7.0
+
+- **新增 Host Config 声明式元数据**：`index.js` 引入 `@deepseek-ai/schemastery`（`~3.19.0`），导出 `Config`，声明显示位置、点按行为、短语行显示、管理入口、输入框有内容时五项配置，取值的白名单与默认值与客户端现有下拉一一对应；`cordis.patch.yml` 同步补上五项默认配置。**诚实说明：这里的 `Config` 只是给插件管理器看的元数据，客户端包没有读取 Host 配置行的桥接，改这些值不会驱动客户端行为；实际行为仍需在「设置 → 快捷短语」里调整，由 localStorage 持久化。** 新增依赖已写入 `package.json` 的 `dependencies`。
+- **修正 CSS 字符串拼接 bug**：`client.js` 的 `MANAGER_CSS` 中 `.dqp-foot` 一行末尾漏了 `+`，导致其后的样式定义被拼成一个无效 CSS 选择器、整段样式失效；补回 `+` 后字段与管理卡片样式恢复。
+- **补齐配置项文档**：README、`docs/DETAIL.md` / `docs/DETAIL.en.md`、中英 `locale` 插件卡片描述新增五项配置的可选值、默认值与作用说明（选中即生效、无需重启）；`test/smoke.mjs`、`test/preview.mjs` 与既有行为保持不变，复跑全绿。
+
 ## 0.6.0
 
 - **短语行三态下拉**：设置里原来的「显示短语行」开关换成 `短语行显示` 下拉，直接选 **显示整排** / **收成胶囊** / **彻底隐藏**。值由既有键推导（`hidden` 优先，其次 `collapsed`），切换时组合写 `dsh.quick-phrases.hidden.v1` 与 `dsh.quick-phrases.collapsed.v1`，**不新增第四套状态键**；选「彻底隐藏」时仍保留「整排已隐藏」徽标与恢复提示。

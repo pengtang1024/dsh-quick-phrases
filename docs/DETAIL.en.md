@@ -46,13 +46,15 @@ A single phrase can be hidden with the **eye** toggle on its card in the manager
 
 Open **Settings → Quick phrases**. The page has two layers: five behaviour options on top, the phrase list below.
 
-**Behaviour options** (applied on selection):
+**Behaviour options** (applied on selection, no restart needed). Each option's values, default and effect:
 
-- **Position**: switch between the three positions above.
-- **On click**: pick "Send right away" or "Fill the composer"; the default is sending right away.
-- **Phrase row**: a three-way dropdown. **Show the full row** keeps the whole row; **Fold into a pill** leaves only the small expandable pill; **Hide completely** removes the row from the UI entirely (not even the pill), and only this page can bring it back; picking "Show the full row" also clears the folded state.
-- **Manage button**: the style of the "Manage" chip at the end of the row. **Text button** is the current look; **Gear icon** swaps in a settings icon (its accessible name stays "Manage" and clicking behaves the same); **Hidden** renders no manage button while the phrase row keeps working, and this page stays reachable.
-- **When the composer has text**: pick "Fold automatically" (default) or "Keep it visible" to decide whether the row folds into the pill while a draft or attachments exist.
+| Option | Values | Default | Effect |
+| --- | --- | --- | --- |
+| Position | Below the composer / Above the composer / Composer tool row | Below the composer | Chooses which composer slot holds the row; the row moves immediately. See "Where the row lives" above for each slot. |
+| On click | Send right away / Fill the composer | Send right away | "Send right away" fires the phrase with one click while the composer is empty and has no attachments; "Fill the composer" only writes it into the draft. In both modes, existing text or attachments are preserved and the phrase is inserted at the caret. |
+| Phrase row | Show the full row / Fold into a pill / Hide completely | Show the full row | Controls the resting shape: "Fold into a pill" leaves one expandable pill; "Hide completely" renders nothing, not even the pill, and only this page can bring it back. Picking "Show the full row" also clears the folded state. See "Folding and hiding" above. |
+| Manage button | Text button / Gear icon / Hidden | Text button | The look of the "Manage" chip at the end of the row. The gear icon keeps the accessible name "Manage" and the same click behaviour; "Hidden" renders no manage button while the phrase row keeps working and this page stays reachable. |
+| When the composer has text | Fold automatically / Keep it visible | Fold automatically | Whether the row folds into the pill while a draft or attachments exist. Automatic folding expands again once the draft is cleared; "Keep it visible" keeps the full row. |
 
 **Phrase list** (one card per phrase):
 

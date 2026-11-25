@@ -130,7 +130,7 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 
 ### 签名约定
 
-**所有版本 tag 必须 SSH 签名**：本仓库已设 `gpg.format=ssh` 并配好 `user.signingkey`，用 `git tag -s vX.Y.Z -m "发布说明"` 打签；**不要用 `git tag -a`**（未签名）。`tag.gpgsign` 未全局开启，所以打 tag 时必须显式带 `-s`。可用 `git tag -v vX.Y.Z` 校验签名。
+**所有版本 tag 必须 SSH 签名**：本仓库已设 `gpg.format=ssh` 并配好 `user.signingkey`，且本地已开启 `tag.gpgSign=true`，直接 `git tag` 也会签名；但换机器 / 换环境可能没有这项配置，为稳妥起见仍建议显式写 `git tag -s vX.Y.Z -m "发布说明"`，**切勿用 `git tag -a`**（未签名）。可用 `git tag -v vX.Y.Z` 校验签名。
 
 ## 发布流程
 

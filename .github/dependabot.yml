@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # npm: the plugin currently has no runtime/dev dependencies, so this entry is
+  # a no-op today; it keeps dependency updates automatic once any are added.
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+
+  # Keep CI/build actions on current versions.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly

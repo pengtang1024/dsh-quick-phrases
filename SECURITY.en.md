@@ -4,10 +4,12 @@
 
 | Version | Receives security fixes |
 | --- | --- |
-| `0.3.x` (currently `0.3.1`) | Yes |
-| `0.2.x` and earlier | No — please upgrade to `0.3.x` first |
+| `0.7.x` (the upcoming latest line, starting from `0.7.0`) | Yes |
+| `0.6.x` | Yes |
+| `0.5.x` | Yes |
+| `0.4.x` and earlier | No — please upgrade to the latest supported version first |
 
-Only the latest `0.3.x` is maintained. Issues in older versions that still exist in the new version are fixed there; no separate patches are released for old versions.
+Only the three most recent minor lines (`0.7.x`, `0.6.x`, `0.5.x`) are maintained. Issues in older versions that still exist in the new version are fixed there; no separate patches are released for old versions.
 
 ## Private reporting
 
@@ -18,7 +20,7 @@ Only the latest `0.3.x` is maintained. Issues in older versions that still exist
 
 Please include as much of the following as you can in your report:
 
-- The affected version (a specific `0.3.x` release).
+- The affected version (a specific `0.7.x` / `0.6.x` / `0.5.x` release).
 - Reproduction steps or a minimal PoC.
 - The actual impact (e.g. what data can be read, whether phrases or the UI can be tampered with).
 - If convenient, a suggested fix.

@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/dsh-quick-phrases?logo=npm)](https://www.npmjs.com/package/dsh-quick-phrases)
 [![License: MIT](https://img.shields.io/github/license/pengtang1024/dsh-quick-phrases)](LICENSE)
 
+语言：[简体中文](docs/DETAIL.md) · [English](docs/DETAIL.en.md) · [Español](docs/DETAIL.es.md) · [Français](docs/DETAIL.fr.md) · [Deutsch](docs/DETAIL.de.md) · [Русский](docs/DETAIL.ru.md) · [Português](docs/DETAIL.pt.md)
+
 给 DeepSeek Harness（DSH）的输入框加一排快捷短语按钮：`继续`、`提交`、`推送`、`发版` 这类天天要打的字，点一下就送进输入框或直接发出。按钮上显示的**名称**和真正发出的**内容**分开编辑，所以按钮可以很短，话可以很长。
 
 > Composer decoration for DeepSeek Harness: a row of quick-phrase chips whose captions and sent text are edited separately, plus a management page in Settings.
@@ -164,3 +166,7 @@ test/preview.mjs   预览与截图
 ## 许可证
 
 [MIT](LICENSE) © 2026 pengtang1024
+
+## 支持本项目
+
+如果这个插件帮你省下了敲字的功夫，欢迎去 [GitHub 仓库](https://github.com/pengtang1024/dsh-quick-phrases) 点个 star ⭐——你的支持就是我继续更新的动力。

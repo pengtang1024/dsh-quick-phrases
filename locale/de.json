@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Schnellphrasen",
+    "description": "Eine Reihe von Schnellphrasen-Schaltflächen neben dem Eingabefeld; Beschriftung und gesendeter Text jeder Schaltfläche werden getrennt bearbeitet. Unter „Einstellungen → Schnellphrasen“ lassen sich fünf Optionen umschalten: Position (unter dem Eingabefeld / über dem Eingabefeld / rechts in der Werkzeugleiste, Standard: unter dem Eingabefeld), Beim Klick auf eine Phrase (sofort senden / in das Eingabefeld einfügen, Standard: sofort senden), Phrasenreihe (ganze Reihe anzeigen / zu einer Pille einklappen / vollständig ausblenden, Standard: ganze Reihe anzeigen), Verwaltungszugang (Textschaltfläche / Zahnrad-Symbol / ausgeblendet, Standard: Textschaltfläche) und Wenn das Eingabefeld Inhalt hat (automatisch einklappen / sichtbar lassen, Standard: automatisch einklappen).",
+    "detail": "docs/DETAIL.de.md"
+  }
+}

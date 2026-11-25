@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Frases rápidas",
+    "description": "Uma linha de botões de frases rápidas ao lado do campo de entrada; a legenda do botão e o texto enviado são editados separadamente. Em «Configurações → Frases rápidas», cinco opções podem ser alternadas: Posição (abaixo do campo de entrada / acima do campo de entrada / à direita da barra de ferramentas, por padrão abaixo do campo de entrada), Ao clicar na frase (enviar imediatamente / preencher o campo de entrada, por padrão enviar imediatamente), Linha de frases (mostrar a linha inteira / recolher em uma pílula / ocultar completamente, por padrão mostrar a linha inteira), Entrada de gerenciamento (botão de texto / ícone de engrenagem / oculto, por padrão botão de texto) e Quando o campo de entrada tem conteúdo (recolher automaticamente / manter visível, por padrão recolher automaticamente).",
+    "detail": "docs/DETAIL.pt.md"
+  }
+}

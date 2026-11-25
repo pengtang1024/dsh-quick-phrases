@@ -677,7 +677,11 @@ window.__ModuleLoader__.load({
       '.dqp-hint{color:var(--dsw-alias-state-warn-primary,#e0a33a);white-space:nowrap}'
 
     var MANAGER_CSS =
-      '.dqp-page{box-sizing:border-box;height:100%;min-height:0;overflow-y:auto;display:flex;justify-content:center;' +
+      // The host's settings `.options` grid cell is the scroll owner (min-height:0;
+      // overflow-y:auto); a second nested scroller here traps wheel/keyboard scrolling
+      // and `height:100%` has no definite parent height on narrow viewports. Let the
+      // page grow naturally so the host panel reaches every row.
+      '.dqp-page{box-sizing:border-box;min-width:0;min-height:100%;display:flex;justify-content:center;' +
       'padding:24px clamp(20px,4vw,44px) 48px;font-family:inherit;color:var(--dsw-alias-label-primary,#eee)}' +
       '.dqp-inner{width:100%;max-width:760px;display:flex;flex-direction:column;gap:18px}' +
       '.dqp-head{display:flex;align-items:flex-start;gap:12px}' +

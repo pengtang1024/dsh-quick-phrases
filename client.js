@@ -1073,7 +1073,8 @@ window.__ModuleLoader__.load({
       '.dqp-option-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:2px 10px}' +
       '.dqp-option-label{font-size:12px;line-height:17px;font-weight:600;letter-spacing:.01em;' +
       'color:var(--dsw-alias-label-primary,#eee)}' +
-      '.dqp-option-hint{font-size:10px;line-height:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-caption,#7d7d7d)}' +
+      '.dqp-option-hint{flex:1 1 100%;min-width:0;overflow-wrap:anywhere;font-size:10px;line-height:14px;' +
+      'color:var(--dsw-alias-label-caption,#7d7d7d)}' +
       '.dqp-select-wrap{position:relative;flex:0 0 auto;display:inline-flex}' +
       '.dqp-select-wrap::after{content:"";position:absolute;right:11px;top:50%;width:5px;height:5px;margin-top:-4px;' +
       'border-right:1.4px solid var(--dsw-alias-label-tertiary,#9a9a9a);border-bottom:1.4px solid var(--dsw-alias-label-tertiary,#9a9a9a);' +

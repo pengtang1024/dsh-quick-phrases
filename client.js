@@ -151,7 +151,7 @@ window.__ModuleLoader__.load({
         'default.push.text': '把本地提交推送到远端',
         'default.release.label': '发版',
         'default.release.text': '发布新版本',
-        'manager.starHint': '觉得好用？欢迎去 GitHub 仓库点个 star 支持一下：',
+        'manager.starHint': '觉得好用？点开下面的链接，在仓库右上角点 Star 支持一下：',
         'manager.starLink': '点个 star',
       },
       en: {
@@ -222,7 +222,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Push local commits to the remote',
         'default.release.label': 'Release',
         'default.release.text': 'Release a new version',
-        'manager.starHint': 'Enjoying it? Give the repo a star on GitHub:',
+        'manager.starHint': 'Enjoying it? Open the link and click Star at the top right of the repo:',
         'manager.starLink': 'Star on GitHub',
       },
       es: {
@@ -293,7 +293,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Enviar los commits locales al remoto',
         'default.release.label': 'Publicar',
         'default.release.text': 'Publicar una nueva versión',
-        'manager.starHint': '¿Te resulta útil? Apoya el proyecto con una estrella en GitHub:',
+        'manager.starHint': '¿Te resulta útil? Abre el enlace y pulsa Star arriba a la derecha del repositorio:',
         'manager.starLink': 'Dar una estrella',
       },
       fr: {
@@ -364,7 +364,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Pousser les commits locaux vers le dépôt distant',
         'default.release.label': 'Publier',
         'default.release.text': 'Publier une nouvelle version',
-        'manager.starHint': 'Utile au quotidien ? Soutenez le projet avec une étoile sur GitHub :',
+        'manager.starHint': 'Utile au quotidien ? Ouvrez le lien et cliquez sur Star en haut à droite du dépôt :',
         'manager.starLink': 'Mettre une étoile',
       },
       de: {
@@ -435,7 +435,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Lokale Commits zum Remote pushen',
         'default.release.label': 'Release',
         'default.release.text': 'Neue Version veröffentlichen',
-        'manager.starHint': 'Gefällt dir die Erweiterung? Gib dem Projekt auf GitHub einen Stern:',
+        'manager.starHint': 'Gefällt dir die Erweiterung? Öffne den Link und klicke oben rechts im Repo auf Star:',
         'manager.starLink': 'Stern geben',
       },
       ru: {
@@ -506,7 +506,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Запушить локальные коммиты в удалённый репозиторий',
         'default.release.label': 'Релиз',
         'default.release.text': 'Опубликовать новую версию',
-        'manager.starHint': 'Полезно? Поддержите проект звездой на GitHub:',
+        'manager.starHint': 'Полезно? Откройте ссылку и нажмите Star в правом верхнем углу репозитория:',
         'manager.starLink': 'Поставить звезду',
       },
       pt: {
@@ -577,7 +577,7 @@ window.__ModuleLoader__.load({
         'default.push.text': 'Enviar commits locais ao remoto',
         'default.release.label': 'Publicar',
         'default.release.text': 'Publicar uma nova versão',
-        'manager.starHint': 'Gostou? Apoie o projeto com uma estrela no GitHub:',
+        'manager.starHint': 'Gostou? Abra o link e clique em Star no canto superior direito do repositório:',
         'manager.starLink': 'Dar uma estrela',
       },
     }

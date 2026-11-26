@@ -154,7 +154,7 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 
    注意刚发布的一两分钟内 `npm view` 可能返回 `0.0.0-stage` 占位版本，属正常过程，等 registry 换成真实版本再看。
 
-4. **更新 `index.json`**：把新版本追加/更新到 `plugins[0].versions`——`version`、真实的 `publishTimestamp`（registry 的 `time` 字段转 epoch 秒）、`source: { "type": "npm" }`、`engines.dsh`。`icon` 用 jsDelivr 的 `@main` 地址，不用每次改。
+4. **更新 `index.json`**：把新版本追加/更新到 `plugins[0].versions`——`version`、真实的 `publishTimestamp`（registry 的 `time` 字段转 epoch 秒）、`source: { "type": "npm" }`、`engines.dsh`。`icon` 用 raw.githubusercontent.com 的 `main` 地址，不用每次改。
 
 5. **校验索引**（用 DSH 自带的 format-1 校验器，路径按本机安装调整）：
 
@@ -162,7 +162,7 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
    ELECTRON_RUN_AS_NODE=1 "<DSH 安装目录>/dsh-desktop-next" --input-type=module -e "
    import fs from 'node:fs'
    const m = await import('file:///<DSH 安装目录>/resources/app.asar/node_modules/@deepseek-ai/dsh-plugin-market-index/lib/index.js')
-   const idx = m.parseMarketIndex(JSON.parse(fs.readFileSync('index.json','utf8')), 'https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json')
+   const idx = m.parseMarketIndex(JSON.parse(fs.readFileSync('index.json','utf8')), 'https://raw.githubusercontent.com/pengtang1024/dsh-quick-phrases/main/index.json')
    console.log('VALID', idx.format, idx.plugins[0].name, m.marketInstallTarget(idx.plugins[0].name, idx.plugins[0].versions[0]))
    "
    ```
@@ -174,10 +174,10 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 7. **复核分发**：
 
    ```bash
-   curl -fsS https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json | head -c 200
+   curl -fsS https://raw.githubusercontent.com/pengtang1024/dsh-quick-phrases/main/index.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).plugins[0].versions[0].version))"
    ```
 
-   jsDelivr 对 `@main` 有缓存，推完可能还是旧内容，可用 `https://purge.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json` 主动刷新；之后在 DSH 里 **Plugins → Discover** 搜到新版本即为发布完成。
+   索引源必须用 raw.githubusercontent.com 的 `main` 地址，**不要用 jsDelivr 的 `@main` / 固定 tag**：实测 jsDelivr 对分支索引会长期缓存旧快照、对 GitHub tag 的同步也可能缺失（`data.jsdelivr.com` 的 `tags` 为空），purge 无效；raw 源缓存只有 5 分钟（`cache-control: max-age=300`），推送后最多等 5 分钟即可。Discover 的 Index sources 是用户添加一次长期订阅的 URL，因此源地址必须固定、且后续版本都要推到同一条 `main` 分支；不要改用固定 commit URL，那会把订阅者永久钉死在旧版本。复核时确认输出为刚发布的版本号，之后在 DSH 里 **Plugins → Discover** 搜到新版本即为发布完成。
 
 ## 代码约定
 

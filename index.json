@@ -31,7 +31,7 @@
         "en": "One-click prompt shortcuts with a manager: separate display name and sent text, drag to reorder, three docking positions, click-to-send or fill-only.",
         "zh": "点按即用的提示短语，带管理页：显示名称与发送内容分离、拖动排序、三种显示位置、可切换「直接发送」或「只填入」。"
       },
-      "icon": "https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/icon.svg",
+      "icon": "https://raw.githubusercontent.com/pengtang1024/dsh-quick-phrases/main/icon.svg",
       "author": "pengtang1024",
       "homepage": "https://github.com/pengtang1024/dsh-quick-phrases",
       "repository": {

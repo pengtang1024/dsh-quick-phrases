@@ -43,7 +43,7 @@ dsh plugin --profile <你的 profile> add dsh-quick-phrases
 在 DSH 里打开 **Plugins → Discover → Index sources**，添加本仓库的索引地址：
 
 ```
-https://cdn.jsdelivr.net/gh/pengtang1024/dsh-quick-phrases@main/index.json
+https://raw.githubusercontent.com/pengtang1024/dsh-quick-phrases/main/index.json
 ```
 
 之后在 Discover 里搜索「快捷短语」即可看到本插件与版本，点安装走的就是 `plugin_manager`。

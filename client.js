@@ -68,9 +68,10 @@ window.__ModuleLoader__.load({
     var DEFAULT_AUTO_HIDE = 'fold'
 
     /**
-     * What the end of the row shows for opening the manager: the original text
-     * chip, a gear icon keeping the same accessible name, or nothing at all
-     * (Settings → Quick phrases is still reachable).
+     * What the end of the row shows for opening the manager. All rendered
+     * modes are now gear-icon pills with the same accessible name; `text` is
+     * kept as the stored default for backward compatibility with existing
+     * settings, not as a visible text label.
      */
     var MANAGE_MODES = ['text', 'icon', 'hidden']
     var DEFAULT_MANAGE = 'text'
@@ -1026,13 +1027,20 @@ window.__ModuleLoader__.load({
       '.dqp-chip:active{background:var(--dsw-alias-interactive-bg-hover-solid,rgba(255,255,255,.12))}' +
       '.dqp-chip:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-brand-primary,#4c6fff));outline-offset:2px}' +
       '.dqp-chip-manage{color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
-      '.dqp-chip-manage-icon{padding:0 7px}' +
+      '.dqp-chip-manage-icon{padding:0;width:24px}' +
       '.dqp-chip-manage svg{display:block}' +
       '.dqp-chip-collapse{color:var(--dsw-alias-label-caption,#7d7d7d);border-style:dashed;background:transparent}' +
       '.dqp-chip-collapse:hover{color:var(--dsw-alias-label-secondary,#b9b9b9)}' +
       '.dqp-pill{gap:4px;color:var(--dsw-alias-label-tertiary,#9a9a9a);border-style:dashed;background:transparent}' +
       '.dqp-pill:hover{color:var(--dsw-alias-label-primary,#eee)}' +
-      '.dqp-caret{font-size:9px;line-height:1;opacity:.75}' +
+      '.dqp-chip-icon{justify-content:center;width:24px;padding:0;gap:0;border-style:solid;' +
+      'border-color:var(--dsw-alias-border-l1,#3f3f3f);background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.05))}' +
+      '.dqp-chip-icon:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08));' +
+      'border-color:var(--dsw-alias-border-l3,#5a5a5a)}' +
+      '.dqp-chip-icon svg{display:block;flex:0 0 auto}' +
+      '.dqp-chip-icon:active svg{transform:scale(.9)}' +
+      '.dqp-dock-tool .dqp-chip-icon,.dqp-dock-tool .dqp-chip-manage-icon{width:22px;height:22px}' +
+      '.dqp-chip-icon svg,.dqp-dock-tool .dqp-chip-icon svg{transition:transform .12s ease}' +
       '.dqp-hint{color:var(--dsw-alias-state-warn-primary,#e0a33a);white-space:nowrap}'
 
     var MANAGER_CSS =
@@ -1237,6 +1245,21 @@ window.__ModuleLoader__.load({
       return firstLine.length > 24 ? firstLine.slice(0, 24) + '…' : firstLine
     }
 
+    /** Inline 24px-grid glyphs — hairline strokes, square caps, no font dependency. */
+    function dockIcon(name) {
+      return h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
+        h('path', {
+          d: name === 'expand' ? 'm9 6 6 6-6 6'
+            : name === 'collapse' ? 'm6 9 6 6 6-6'
+              : 'M10.6 3.8a1.6 1.6 0 0 1 2.8 0l1 1.8c.2.3.5.5.9.5l2-.2a1.6 1.6 0 0 1 1.7 2.3l-1 1.8a1.7 1.7 0 0 0 0 1.6l1 1.8a1.6 1.6 0 0 1-1.7 2.3l-2-.2a1.7 1.7 0 0 0-.9.5l-1 1.8a1.6 1.6 0 0 1-2.8 0l-1-1.8a1.7 1.7 0 0 0-.9-.5l-2 .2a1.6 1.6 0 0 1-1.7-2.3l1-1.8a1.7 1.7 0 0 0 0-1.6l-1-1.8A1.6 1.6 0 0 1 6.7 6.2l2 .2c.4 0 .7-.2.9-.5l1-1.8Z',
+          stroke: 'currentColor',
+          strokeWidth: 1.6,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        }),
+        name === 'manage' ? h('circle', { cx: 12, cy: 12, r: 3, stroke: 'currentColor', strokeWidth: 1.6 }) : null)
+    }
+
     /** Narrow selectors so the row only re-renders when these two change. */
     function draftOf(state) {
       return state === null || state === undefined || typeof state.draft !== 'string' ? '' : state.draft
@@ -1361,7 +1384,7 @@ window.__ModuleLoader__.load({
             h('button', {
               key: 'expand',
               type: 'button',
-              className: 'dqp-chip dqp-pill',
+              className: 'dqp-chip dqp-chip-icon dqp-pill',
               title: t('dock.expandHint'),
               'aria-label': t('dock.expandHint'),
               'aria-expanded': false,
@@ -1369,9 +1392,7 @@ window.__ModuleLoader__.load({
                 setPeeked(true)
                 setCollapsed(false)
               },
-            },
-            h('span', { className: 'dqp-caret', 'aria-hidden': true }, '\u25b8'),
-            t('dock.expand')),
+            }, dockIcon('expand')),
           ))
         } else {
           children.push(h('div', { key: 'row', className: rowClass },
@@ -1388,7 +1409,7 @@ window.__ModuleLoader__.load({
             h('button', {
               key: 'collapse',
               type: 'button',
-              className: 'dqp-chip dqp-chip-collapse',
+              className: 'dqp-chip dqp-chip-icon dqp-chip-collapse',
               title: t('dock.collapseHint'),
               'aria-label': t('dock.collapseHint'),
               'aria-expanded': true,
@@ -1396,26 +1417,15 @@ window.__ModuleLoader__.load({
                 setPeeked(false)
                 setCollapsed(true)
               },
-            },
-            t('dock.collapse'),
-            h('span', { className: 'dqp-caret', 'aria-hidden': true }, '\u25be')),
+            }, dockIcon('collapse')),
             manageEntry === 'hidden' ? null : h('button', {
               key: 'manage',
               type: 'button',
-              className: 'dqp-chip dqp-chip-manage' + (manageEntry === 'icon' ? ' dqp-chip-manage-icon' : ''),
+              className: 'dqp-chip dqp-chip-manage dqp-chip-icon' + (manageEntry === 'text' ? ' dqp-chip-manage-icon' : ''),
               title: t('dock.manage'),
               'aria-label': t('dock.manage'),
               onClick: handleManage,
-            }, manageEntry === 'icon'
-              ? h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
-                  h('circle', { cx: 12, cy: 12, r: 3, stroke: 'currentColor', strokeWidth: 1.6 }),
-                  h('path', {
-                    d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z',
-                    stroke: 'currentColor',
-                    strokeWidth: 1.4,
-                    strokeLinejoin: 'round',
-                  }))
-              : t('dock.manage')),
+            }, dockIcon('manage')),
           ))
         }
         if (showHint[0]) {

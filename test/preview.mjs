@@ -189,17 +189,31 @@ const buttonsByClass = (tree, className) =>
     (n) => n.type === 'button' && String(n.props?.className ?? '').includes(className),
   )
 rowModeSelect().props.onChange({ target: { value: 'pill' } })
-const pillDockHtml = serialize(render('preview-dock-pill', dock, dockStub))
+const pillDockTree = render('preview-dock-pill', dock, dockStub)
+const pillButtons = buttonsByClass(pillDockTree, 'dqp-chip')
+assert.equal(pillButtons.length, 1, 'the folded row keeps one expand pill')
+assert.ok(pillButtons[0].props.className.includes('dqp-chip-icon'), 'the pill is an icon pill')
+assert.equal(pillButtons[0].props['aria-label'], t('dock.expandHint'), 'the pill keeps its accessible name')
+assert.ok(collectNodes(pillDockTree).some((n) => n.type === 'svg'), 'the pill renders an svg')
+const pillDockHtml = serialize(pillDockTree)
 rowModeSelect().props.onChange({ target: { value: 'full' } })
 const fullDockTree = render('preview-dock-full', dock, dockStub)
 assert.equal(buttonsByClass(fullDockTree, 'dqp-chip-collapse').length, 1, 'the full row keeps the fold chip')
+const collapseBtn = buttonsByClass(fullDockTree, 'dqp-chip-collapse')[0]
+assert.equal(collapseBtn.props['aria-label'], t('dock.collapseHint'), 'the fold chip keeps its accessible name')
+assert.ok(collectNodes(collapseBtn).some((n) => n.type === 'svg'), 'the fold chip renders an svg')
 const fullDockHtml = serialize(fullDockTree)
 
-assert.equal(manageSelect().props.value, 'text', 'the manage entry starts as text')
+assert.equal(manageSelect().props.value, 'text', 'the manage entry defaults to the stored text value')
 manageSelect().props.onChange({ target: { value: 'icon' } })
 const manageIconTree = render('preview-dock-manage-icon', dock, dockStub)
 assert.equal(buttonsByClass(manageIconTree, 'dqp-chip-manage').length, 1, 'the icon manage entry keeps one button')
 assert.ok(collectNodes(manageIconTree).some((n) => n.type === 'svg'), 'the icon manage entry renders an svg')
+assert.equal(
+  buttonsByClass(manageIconTree, 'dqp-chip-manage')[0].props['aria-label'],
+  t('dock.manage'),
+  'the icon manage entry keeps its accessible name',
+)
 const manageIconDockHtml = serialize(manageIconTree)
 manageSelect().props.onChange({ target: { value: 'hidden' } })
 const manageHiddenTree = render('preview-dock-manage-hidden', dock, dockStub)

@@ -215,6 +215,15 @@ assert.deepEqual(
 )
 assert.ok(chips[4].props.className.includes('dqp-chip-collapse'), 'the row ends with a hide chip')
 assert.ok(chips[5].props.className.includes('dqp-chip-manage'), 'manage is the last chip')
+// The trailing chips are icon-only pills: the visible label is an SVG glyph,
+// the localised text lives only in title/aria-label for assistive tech.
+for (const [chip, label] of [[chips[4], t('dock.collapseHint')], [chips[5], t('dock.manage')]]) {
+  assert.equal(textOf(chip).trim(), '', 'the trailing chip has no visible text')
+  assert.equal(chip.props.title, label, 'the chip title stays localised')
+  assert.equal(chip.props['aria-label'], label, 'the chip keeps its accessible name')
+  assert.ok(walk(chip).some((n) => n.type === 'svg'), 'the chip renders an inline icon')
+  assert.ok(String(chip.props.className).includes('dqp-chip-icon'), 'the chip uses the icon-pill geometry')
+}
 
 chips[1].props.onClick()
 assert.deepEqual(written, ['提交改动并推送到远端'], 'chip writes its sent text, not its label')
@@ -240,7 +249,11 @@ const foldedTree = render('dock', dockReg.component, dockProps)
 const foldedChips = byClass(foldedTree, 'dqp-chip')
 assert.equal(foldedChips.length, 1, 'a folded row renders a single pill')
 assert.ok(foldedChips[0].props.className.includes('dqp-pill'), 'the pill is its own chip')
-assert.ok(textOf(foldedChips[0]).includes(t('dock.expand')), 'the pill is labelled with the row name')
+assert.ok(foldedChips[0].props.className.includes('dqp-chip-icon'), 'the pill is an icon pill')
+assert.equal(textOf(foldedChips[0]).trim(), '', 'the expand pill shows no visible text')
+assert.equal(foldedChips[0].props.title, t('dock.expandHint'), 'the pill title stays localised')
+assert.equal(foldedChips[0].props['aria-label'], t('dock.expandHint'), 'the pill keeps its accessible name')
+assert.ok(walk(foldedChips[0]).some((n) => n.type === 'svg'), 'the pill renders a chevron icon')
 assert.equal(foldedChips[0].props['aria-expanded'], false)
 
 foldedChips[0].props.onClick()
@@ -274,7 +287,9 @@ const autoHideStored = () => localStorage.getItem('dsh.quick-phrases.autohide.v1
 assert.equal(autoHideStored(), null, 'nothing stored before the first policy switch')
 const draftFolded = byClass(render('draft', dockReg.component, draftProps), 'dqp-chip')
 assert.equal(draftFolded.length, 1, 'a draft folds the row by default')
-assert.ok(textOf(draftFolded[0]).includes(t('dock.expand')), 'the folded row keeps an expand pill')
+assert.equal(textOf(draftFolded[0]).trim(), '', 'the folded row keeps an icon-only expand pill')
+assert.equal(draftFolded[0].props['aria-label'], t('dock.expandHint'), 'the expand pill keeps its accessible name')
+assert.ok(walk(draftFolded[0]).some((n) => n.type === 'svg'), 'the folded row renders an expand svg')
 
 // Opening the pill is a peek: the row comes back for this draft, the setting stays.
 draftFolded[0].props.onClick()
@@ -489,8 +504,14 @@ assert.deepEqual(
   'three manage entries are offered',
 )
 const textManage = byClass(render('dock-manage-text', dockReg.component, dockProps), 'dqp-chip-manage')
-assert.equal(textManage.length, 1, 'text mode renders the manage chip')
-assert.equal(textOf(textManage[0]).trim(), t('dock.manage'), 'text mode labels the chip 管理')
+assert.equal(textManage.length, 1, 'the default (text) mode still renders the manage chip')
+// The setting key stays `text` for backward compatibility, but the user wants
+// an icon pill: no visible label, gear svg, localised name only in the a11y props.
+assert.equal(textOf(textManage[0]).trim(), '', 'even the default mode shows no text label')
+assert.ok(textManage[0].props.className.includes('dqp-chip-manage-icon'), 'legacy mode keeps its marker class')
+assert.ok(walk(textManage[0]).some((n) => n.type === 'svg'), 'the default mode renders a gear svg')
+assert.equal(textManage[0].props.title, t('dock.manage'), 'the default mode keeps the localised title')
+assert.equal(textManage[0].props['aria-label'], t('dock.manage'), 'the default mode keeps the manage accessible name')
 
 manageSelect().props.onChange({ target: { value: 'icon' } })
 assert.equal(manageStored(), 'icon', 'the icon mode persists to manage.v1')
@@ -516,12 +537,10 @@ assert.equal(
 )
 
 manageSelect().props.onChange({ target: { value: 'text' } })
-assert.equal(manageStored(), 'text', 'the manage entry can be switched back to text')
-assert.equal(
-  byClass(render('dock-manage-text-again', dockReg.component, dockProps), 'dqp-chip-manage').length,
-  1,
-  'the text manage chip comes back',
-)
+assert.equal(manageStored(), 'text', 'the manage entry can be switched back to the default')
+const textManageAgain = byClass(render('dock-manage-text-again', dockReg.component, dockProps), 'dqp-chip-manage')
+assert.equal(textManageAgain.length, 1, 'the manage chip comes back')
+assert.equal(textOf(textManageAgain[0]).trim(), '', 'the restored manage chip is still icon-only')
 
 // One phrase can be hidden without leaving the list: the row stays, the chip goes.
 managerTree = render('manager', sectionReg.component, { t })

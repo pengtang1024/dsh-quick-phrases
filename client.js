@@ -151,7 +151,7 @@ window.__ModuleLoader__.load({
         'default.push.label': '推送',
         'default.push.text': '把本地提交推送到远端',
         'default.release.label': '发版',
-        'default.release.text': '发布新版本',
+        'default.release.text': '提交，推送，发布新版本，更新到本地',
         'manager.starHint': '觉得好用？点开下面的链接，在仓库右上角点 Star 支持一下：',
         'manager.starLink': '点个 star',
       },
@@ -222,7 +222,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Push',
         'default.push.text': 'Push local commits to the remote',
         'default.release.label': 'Release',
-        'default.release.text': 'Release a new version',
+        'default.release.text': 'Commit, push, publish the new version, then update locally',
         'manager.starHint': 'Enjoying it? Open the link and click Star at the top right of the repo:',
         'manager.starLink': 'Star on GitHub',
       },
@@ -293,7 +293,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Enviar',
         'default.push.text': 'Enviar los commits locales al remoto',
         'default.release.label': 'Publicar',
-        'default.release.text': 'Publicar una nueva versión',
+        'default.release.text': 'Haz commit, haz push, publica la nueva versión y actualiza tu copia local',
         'manager.starHint': '¿Te resulta útil? Abre el enlace y pulsa Star arriba a la derecha del repositorio:',
         'manager.starLink': 'Dar una estrella',
       },
@@ -364,7 +364,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Pousser',
         'default.push.text': 'Pousser les commits locaux vers le dépôt distant',
         'default.release.label': 'Publier',
-        'default.release.text': 'Publier une nouvelle version',
+        'default.release.text': 'Fais un commit, pousse-le, publie la nouvelle version puis mets à jour en local',
         'manager.starHint': 'Utile au quotidien ? Ouvrez le lien et cliquez sur Star en haut à droite du dépôt :',
         'manager.starLink': 'Mettre une étoile',
       },
@@ -435,7 +435,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Pushen',
         'default.push.text': 'Lokale Commits zum Remote pushen',
         'default.release.label': 'Release',
-        'default.release.text': 'Neue Version veröffentlichen',
+        'default.release.text': 'Committen, pushen, neue Version veröffentlichen und lokal aktualisieren',
         'manager.starHint': 'Gefällt dir die Erweiterung? Öffne den Link und klicke oben rechts im Repo auf Star:',
         'manager.starLink': 'Stern geben',
       },
@@ -506,7 +506,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Пуш',
         'default.push.text': 'Запушить локальные коммиты в удалённый репозиторий',
         'default.release.label': 'Релиз',
-        'default.release.text': 'Опубликовать новую версию',
+        'default.release.text': 'Закоммитить, запушить, опубликовать новую версию и обновить локальную копию',
         'manager.starHint': 'Полезно? Откройте ссылку и нажмите Star в правом верхнем углу репозитория:',
         'manager.starLink': 'Поставить звезду',
       },
@@ -577,7 +577,7 @@ window.__ModuleLoader__.load({
         'default.push.label': 'Push',
         'default.push.text': 'Enviar commits locais ao remoto',
         'default.release.label': 'Publicar',
-        'default.release.text': 'Publicar uma nova versão',
+        'default.release.text': 'Commite, dê push, publique a nova versão e atualize localmente',
         'manager.starHint': 'Gostou? Abra o link e clique em Star no canto superior direito do repositório:',
         'manager.starLink': 'Dar uma estrela',
       },
@@ -585,8 +585,6 @@ window.__ModuleLoader__.load({
 
     var DEFAULT_SPECS = [
       { id: 'continue', label: 'default.continue.label', text: 'default.continue.text' },
-      { id: 'commit', label: 'default.commit.label', text: 'default.commit.text' },
-      { id: 'push', label: 'default.push.label', text: 'default.push.text' },
       { id: 'release', label: 'default.release.label', text: 'default.release.text' },
     ]
 
@@ -1228,12 +1226,26 @@ window.__ModuleLoader__.load({
      * Dock chips
      * ------------------------------------------------------------------ */
 
-    /** Fallback translator: the slot synthesizes `t` from the locale seat, but a
-     * host that drops it must not blank our entry. */
+    var DICT_KEYS = ['zh', 'en', 'es', 'fr', 'de', 'ru', 'pt']
+
+    /** Language of the last-resort dictionary when the host gives us no `t`. */
+    function navigatorDictKey() {
+      if (typeof navigator === 'undefined') return 'en'
+      var raw = String(navigator.language || navigator.userLanguage || '').toLowerCase()
+      var base = raw.replace(/_/g, '-').split('-')[0]
+      for (var i = 0; i < DICT_KEYS.length; i += 1) {
+        if (base === DICT_KEYS[i]) return DICT_KEYS[i]
+      }
+      return 'en'
+    }
+
+    /** The slot synthesizes `t` from the locale seat, already bound to the DSH
+     * language; both seeded defaults and UI strings use that same source. A host
+     * that drops the seat falls back to navigator.language across all seven
+     * dictionaries instead of the old zh/en-only split. */
     function resolveT(props) {
       if (typeof props.t === 'function') return props.t
-      var zh = typeof navigator !== 'undefined' && /^zh/i.test(navigator.language || '')
-      var dict = zh ? DICTS.zh : DICTS.en
+      var dict = DICTS[navigatorDictKey()] || DICTS.en
       return function (key) {
         return dict[key] !== undefined ? dict[key] : key
       }

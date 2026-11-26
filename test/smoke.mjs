@@ -40,7 +40,7 @@ const React = {
     }
     return [cells[index], set]
   },
-  useEffect() {},
+  useEffect(fn) { fn() },
   useRef(value) {
     return { current: value ?? null }
   },
@@ -116,10 +116,25 @@ plugin.apply(makeCtx())
 assert.equal(dictsSeen[0].ns, 'dsh-quick-phrases')
 assert.equal(dictsSeen[0].zh['section.title'], '快捷短语', 'zh dictionary registered')
 assert.equal(typeof dictsSeen[0].en['section.title'], 'string', 'en dictionary registered')
-assert.deepEqual(
-  Object.keys(dictsSeen[0].en).sort(),
-  Object.keys(dictsSeen[0].zh).sort(),
-  'zh and en dictionaries carry exactly the same keys',
+const LANGUAGES = ['zh', 'en', 'es', 'fr', 'de', 'ru', 'pt']
+const BASE_KEYS = Object.keys(dictsSeen[0].zh).sort()
+for (const lang of LANGUAGES) {
+  assert.deepEqual(
+    Object.keys(dictsSeen[0][lang]).sort(),
+    BASE_KEYS,
+    `${lang} dictionary carries exactly the same keys as zh`,
+  )
+}
+assert.equal(dictsSeen[0].zh['default.release.label'], '发版', 'release label stays localized')
+assert.equal(
+  dictsSeen[0].zh['default.release.text'],
+  '提交，推送，发布新版本，更新到本地',
+  'zh release text is the four-step workflow',
+)
+assert.equal(
+  dictsSeen[0].en['default.release.text'],
+  'Commit, push, publish the new version, then update locally',
+  'en release text is the four-step workflow',
 )
 assert.deepEqual(injectedKeys, [
   'conversation.composer.dock',
@@ -208,16 +223,16 @@ const dockProps = {
   },
 }
 const chips = byClass(render('dock', dockReg.component, dockProps), 'dqp-chip')
-assert.equal(chips.length, 6, 'four phrase chips + hide + manage')
+assert.equal(chips.length, 4, 'two phrase chips + hide + manage')
 assert.deepEqual(
-  chips.slice(0, 4).map((c) => textOf(c)),
-  ['继续', '提交', '推送', '发版'],
+  chips.slice(0, 2).map((c) => textOf(c)),
+  ['继续', '发版'],
 )
-assert.ok(chips[4].props.className.includes('dqp-chip-collapse'), 'the row ends with a hide chip')
-assert.ok(chips[5].props.className.includes('dqp-chip-manage'), 'manage is the last chip')
+assert.ok(chips[2].props.className.includes('dqp-chip-collapse'), 'the row ends with a hide chip')
+assert.ok(chips[3].props.className.includes('dqp-chip-manage'), 'manage is the last chip')
 // The trailing chips are icon-only pills: the visible label is an SVG glyph,
 // the localised text lives only in title/aria-label for assistive tech.
-for (const [chip, label] of [[chips[4], t('dock.collapseHint')], [chips[5], t('dock.manage')]]) {
+for (const [chip, label] of [[chips[2], t('dock.collapseHint')], [chips[3], t('dock.manage')]]) {
   assert.equal(textOf(chip).trim(), '', 'the trailing chip has no visible text')
   assert.equal(chip.props.title, label, 'the chip title stays localised')
   assert.equal(chip.props['aria-label'], label, 'the chip keeps its accessible name')
@@ -226,11 +241,11 @@ for (const [chip, label] of [[chips[4], t('dock.collapseHint')], [chips[5], t('d
 }
 
 chips[1].props.onClick()
-assert.deepEqual(written, ['提交改动并推送到远端'], 'chip writes its sent text, not its label')
+assert.deepEqual(written, ['提交，推送，发布新版本，更新到本地'], 'release chip writes the four-step text, not its label')
 assert.equal(submitted.length, 1, 'an empty composer sends the phrase instead of only writing it')
 assert.deepEqual(inserted, [], 'the send path does not fall through to insertion')
 
-chips[5].props.onClick()
+chips[3].props.onClick()
 assert.equal(manageCalls, 1, 'manage chip calls the settings opener')
 const dockTree2 = render('dock', dockReg.component, dockProps)
 assert.ok(
@@ -258,7 +273,7 @@ assert.equal(foldedChips[0].props['aria-expanded'], false)
 
 foldedChips[0].props.onClick()
 assert.equal(collapseStored(), '0', 'opening the pill clears the folded state')
-assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 6, 'the row comes back')
+assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 4, 'the row comes back')
 
 /* ---------------- click behaviour: send right away vs fill only ---------------- */
 
@@ -296,10 +311,10 @@ draftFolded[0].props.onClick()
 assert.equal(collapseStored(), '0', 'peeking does not persist a collapsed row')
 assert.equal(autoHideStored(), null, 'peeking does not change the auto-hide policy')
 const draftChips = byClass(render('draft', dockReg.component, draftProps), 'dqp-chip')
-assert.equal(draftChips.length, 6, 'the peeked row shows every chip again')
+assert.equal(draftChips.length, 4, 'the peeked row shows every chip again')
 draftChips[1].props.onClick()
 assert.equal(submitted.length, 0, 'a non-empty draft is not sent over')
-assert.deepEqual(inserted, ['提交改动并推送到远端'], 'the phrase is inserted at the caret instead')
+assert.deepEqual(inserted, ['提交，推送，发布新版本，更新到本地'], 'the release phrase is inserted at the caret')
 assert.deepEqual(written, [], 'the typed draft is not replaced')
 
 // Keeping the row visible is the opt-out for anyone who wants it always there.
@@ -315,7 +330,7 @@ policyPicker.props.onChange({ target: { value: 'keep' } })
 assert.equal(autoHideStored(), 'keep', 'choosing keep persists it')
 assert.equal(
   byClass(render('draft-keep', dockReg.component, draftProps), 'dqp-chip').length,
-  6,
+  4,
   'keeping the row visible leaves it open while a draft exists',
 )
 policyPicker.props.onChange({ target: { value: 'fold' } })
@@ -349,7 +364,7 @@ assert.equal(clickStored(), 'send', 'the click behaviour can be switched back')
 const placementStored = () => localStorage.getItem('dsh.quick-phrases.placement.v1')
 
 assert.equal(placementStored(), null, 'nothing stored before the first switch')
-assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length === 6, 'default position is under the composer')
+assert.ok(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length === 4, 'default position is under the composer')
 assert.ok(
   walk(render('dock-default', dockReg.component, dockProps)).some(
     (n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-inset',
@@ -373,7 +388,7 @@ placementPicker.props.onChange({ target: { value: 'input-dock' } })
 assert.equal(placementStored(), 'input-dock', 'switching position persists it')
 assert.equal(render('dock', dockReg.component, dockProps), null, 'the old row disappears')
 const topTree = render('top', topReg.component, dockProps)
-assert.equal(byClass(topTree, 'dqp-chip').length, 6, 'the new row renders above the composer')
+assert.equal(byClass(topTree, 'dqp-chip').length, 4, 'the new row renders above the composer')
 assert.ok(
   walk(topTree).some((n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-inset'),
   'the above-composer row copies the host dock geometry so it lines up with the card',
@@ -389,20 +404,20 @@ assert.ok(
   walk(toolTree).some((n) => String(n.props?.className ?? '') === 'dqp-dock dqp-dock-tool'),
   'the tool row uses the compact variant',
 )
-assert.equal(byClass(toolTree, 'dqp-chip').length, 6)
+assert.equal(byClass(toolTree, 'dqp-chip').length, 4)
 
 // Back to the default so the CRUD assertions below read the dock row.
 placementPicker = selectById(render('manager', sectionReg.component, { t }), 'dqp-placement')
 placementPicker.props.onChange({ target: { value: 'composer-dock' } })
 assert.equal(placementStored(), 'composer-dock', 'the position can be switched back')
-assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 6)
+assert.equal(byClass(render('dock', dockReg.component, dockProps), 'dqp-chip').length, 4)
 
 /* ---------------- manager: the three-state row mode and per-phrase hiding ---------------- */
 
 const stored = () => JSON.parse(localStorage.getItem('dsh.quick-phrases.v1'))
 
 let managerTree = render('manager', sectionReg.component, { t })
-assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
+assert.equal(rowsOf(managerTree).length, 2, 'two default rows')
 
 const hiddenStored = () => localStorage.getItem('dsh.quick-phrases.hidden.v1')
 assert.equal(hiddenStored(), null, 'the row is not hidden by default')
@@ -418,8 +433,8 @@ assert.deepEqual(
 )
 assert.equal(
   byClass(render('dock-default-row', dockReg.component, dockProps), 'dqp-chip').length,
-  6,
-  'the default row mode renders all six chips',
+  4,
+  'the default row mode renders all four chips',
 )
 
 // The 收起 chip keeps its old meaning: one pill, the row is still there.
@@ -436,7 +451,7 @@ assert.equal(collapseStored(), '0', 'choosing full clears the folded key')
 assert.equal(rowModeSelect().props.value, 'full', 'the dropdown reflects the stored state')
 assert.equal(
   byClass(render('dock-full-again', dockReg.component, dockProps), 'dqp-chip').length,
-  6,
+  4,
   'choosing full brings the whole row back',
 )
 
@@ -485,7 +500,7 @@ assert.equal(hiddenStored(), '0', 'the dropdown brings the row back')
 assert.equal(collapseStored(), '0', 'bringing the row back clears a folded state')
 assert.equal(
   byClass(render('dock-switch', dockReg.component, dockProps), 'dqp-chip').length,
-  6,
+  4,
   'the whole row is back',
 )
 
@@ -522,7 +537,7 @@ assert.equal(textOf(iconManage[0]).trim(), '', 'icon mode renders no text label'
 assert.equal(iconManage[0].props['aria-label'], t('dock.manage'), 'icon mode keeps the manage accessible name')
 assert.equal(
   byClass(render('dock-manage-icon-row', dockReg.component, dockProps), 'dqp-chip').length,
-  6,
+  4,
   'the phrase chips and the fold chip stay next to the icon',
 )
 
@@ -532,7 +547,7 @@ const hiddenManageDock = render('dock-manage-hidden', dockReg.component, dockPro
 assert.equal(byClass(hiddenManageDock, 'dqp-chip-manage').length, 0, 'hidden mode renders no manage chip')
 assert.equal(
   byClass(hiddenManageDock, 'dqp-chip').length,
-  5,
+  3,
   'the phrase chips and the fold chip still render without the manage chip',
 )
 
@@ -546,8 +561,8 @@ assert.equal(textOf(textManageAgain[0]).trim(), '', 'the restored manage chip is
 managerTree = render('manager', sectionReg.component, { t })
 click(managerTree, 'dqp-eye', 0)
 assert.equal(stored()[0].hidden, true, 'the eye toggle persists the hidden flag')
-assert.equal(byClass(render('dock-hidden', dockReg.component, dockProps), 'dqp-chip').length, 5, 'a hidden phrase loses its chip')
-assert.equal(rowsOf(render('manager', sectionReg.component, { t })).length, 4, 'the hidden row stays in the manager')
+assert.equal(byClass(render('dock-hidden', dockReg.component, dockProps), 'dqp-chip').length, 3, 'a hidden phrase loses its chip')
+assert.equal(rowsOf(render('manager', sectionReg.component, { t })).length, 2, 'the hidden row stays in the manager')
 assert.ok(
   walk(render('manager', sectionReg.component, { t })).some(
     (n) => n.type === 'div' && String(n.props.className ?? '').includes('dqp-row-muted'),
@@ -557,11 +572,11 @@ assert.ok(
 managerTree = render('manager', sectionReg.component, { t })
 click(managerTree, 'dqp-eye', 0)
 assert.equal(stored()[0].hidden, false, 'the eye toggle shows the phrase again')
-assert.equal(byClass(render('dock-shown', dockReg.component, dockProps), 'dqp-chip').length, 6)
+assert.equal(byClass(render('dock-shown', dockReg.component, dockProps), 'dqp-chip').length, 4)
 
 /* ---------------- manager: add / edit / reorder / delete / reset ---------------- */
 
-assert.equal(rowsOf(managerTree).length, 4, 'four default rows')
+assert.equal(rowsOf(managerTree).length, 2, 'two default rows')
 
 function click(tree, className, index = 0) {
   const buttons = byClass(tree, className)
@@ -570,12 +585,12 @@ function click(tree, className, index = 0) {
 }
 
 click(managerTree, 'dqp-btn-primary') // add
-assert.equal(stored().length, 5, 'add appends a row')
-assert.equal(stored()[4].label, '')
+assert.equal(stored().length, 3, 'add appends a row')
+assert.equal(stored()[2].label, '')
 
 managerTree = render('manager', sectionReg.component, { t })
 const rows = rowsOf(managerTree)
-assert.equal(rows.length, 5)
+assert.equal(rows.length, 3)
 const labelsInput = walk(rows[0]).filter((n) => n.type === 'input')[0]
 labelsInput.props.onChange({ target: { value: '继续吧' } })
 assert.equal(stored()[0].label, '继续吧', 'label edits persist')
@@ -588,7 +603,7 @@ assert.equal(stored()[0].text, '继续，按原计划推进', 'text edits persis
 click(rows[1], 'dqp-icon', 1) // ↑ on the second row
 assert.deepEqual(
   stored().slice(0, 2).map((p) => p.label),
-  ['提交', '继续吧'],
+  ['发版', '继续吧'],
   'move up swaps order',
 )
 
@@ -597,7 +612,7 @@ managerTree = render('manager', sectionReg.component, { t })
 const firstRow = rowsOf(managerTree)[0]
 const preview = walk(firstRow).find((n) => String(n.props?.className ?? '').includes('dqp-preview'))
 assert.ok(preview, 'each row previews its chip caption')
-assert.equal(textOf(preview), '提交', 'the preview uses the stored label')
+assert.equal(textOf(preview), '发版', 'the preview uses the stored label')
 assert.ok(
   textOf(firstRow).includes(t('manager.chars').replace('{n}', String(stored()[0].text.length))),
   'the row reports the sent-text length',
@@ -606,11 +621,11 @@ assert.ok(
 // Drag-and-drop reorder: grab the last row's grip and drop it on the first row.
 managerTree = render('manager', sectionReg.component, { t })
 let dragRows = rowsOf(managerTree)
-const grip = walk(dragRows[3]).find((n) => String(n.props?.className ?? '') === 'dqp-grip')
+const grip = walk(dragRows[2]).find((n) => String(n.props?.className ?? '') === 'dqp-grip')
 assert.ok(grip && grip.props.draggable === true, 'each row has a drag handle')
 grip.props.onDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } })
 dragRows[0].props.onDrop({ preventDefault() {} })
-assert.equal(stored().at(0).label, '发版', 'dropping a row on the first position moves it there')
+assert.equal(stored().at(0).label, '', 'dropping a row on the first position moves it there')
 
 // Delete is a two-step action, so a stray click cannot drop a phrase.
 managerTree = render('manager', sectionReg.component, { t })
@@ -630,13 +645,13 @@ assert.equal(stored().length, beforeDelete - 1, 'the second click removes the ro
 /* ---------------- dock reflects the edited list ---------------- */
 
 const dockTree3 = render('dock', dockReg.component, dockProps)
-const labels = byClass(dockTree3, 'dqp-chip').slice(0, 4).map((c) => textOf(c))
-assert.deepEqual(labels, ['发版', '提交', '继续吧', '推送'], 'dock order follows the list')
+const labels = byClass(dockTree3, 'dqp-chip').slice(0, 2).map((c) => textOf(c))
+assert.deepEqual(labels, ['发版', ''], 'dock order follows the list')
 
 /* ---------------- restore defaults ---------------- */
 
 managerTree = render('manager', sectionReg.component, { t })
-assert.equal(stored().length, 4, 'list is four rows before reset')
+assert.equal(stored().length, 2, 'list is two rows before reset')
 buttonByText(managerTree, t('manager.reset')).props.onClick() // first click arms the confirm
 managerTree = render('manager', sectionReg.component, { t })
 assert.ok(
@@ -644,8 +659,60 @@ assert.ok(
   'confirm label appears after the first click',
 )
 buttonByText(managerTree, t('manager.resetConfirm')).props.onClick() // second click resets
-assert.equal(stored().length, 4, 'reset restores the four defaults')
-assert.equal(stored()[0].label, '继续', 'reset restores default labels')
+assert.equal(stored().length, 2, 'reset restores the two defaults')
+assert.deepEqual(
+  stored().map((p) => p.label),
+  ['继续', '发版'],
+  'reset restores default labels',
+)
+assert.equal(
+  stored()[1].text,
+  '提交，推送，发布新版本，更新到本地',
+  'reset restores the release four-step text',
+)
+
+/* ---------------- language follows the host seat, with navigator fallback ---------------- */
+
+const ALL_SEVEN = {
+  zh: '提交，推送，发布新版本，更新到本地',
+  en: 'Commit, push, publish the new version, then update locally',
+  es: 'Haz commit, haz push, publica la nueva versión y actualiza tu copia local',
+  fr: 'Fais un commit, pousse-le, publie la nouvelle version puis mets à jour en local',
+  de: 'Committen, pushen, neue Version veröffentlichen und lokal aktualisieren',
+  ru: 'Закоммитить, запушить, опубликовать новую версию и обновить локальную копию',
+  pt: 'Commite, dê push, publique a nova versão e atualize localmente',
+}
+for (const [lang, text] of Object.entries(ALL_SEVEN)) {
+  assert.equal(dictsSeen[0][lang]['default.release.text'], text, lang + ' four-step release text')
+}
+
+// Fresh VM per language: module-level phrase state starts empty, so seeding uses
+// exactly the language source under test (host t first, navigator.language second).
+function freshSeed({ language, tKeys }) {
+  const box = { console, navigator: { language }, window: {
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    setTimeout: () => 1, clearTimeout() {}, addEventListener() {}, removeEventListener() {},
+  }, require: (n) => n === 'react' ? React : (() => { throw new Error(n) })() }
+  box.window.__ModuleLoader__ = { load(spec) { box._spec = spec } }
+  vm.createContext(box); vm.runInContext(SOURCE, box, { filename: 'client.js' })
+  const plug = box._spec.factory(box.require)
+  const regs = []
+  plug.apply({ effect(fn) { fn(); return () => {} }, locale: {
+    register(ns, dicts) { box._dicts = dicts; return () => {} }, bind() { return () => '' },
+  }, slots: { entries: () => [], inject(k, i) { i() }, register(o, c) { regs.push({ o, c }); return () => {} } } })
+  const reg = regs.find((r) => r.o.name === 'conversation.composer.dock')
+  const t = tKeys ? ((key) => box._dicts[tKeys][key] ?? key) : undefined
+  const props = { inputActions: { setDraft() {} }, openManager: () => false }
+  if (t) props.t = t
+  beginRender('fresh-' + language + '-' + tKeys)
+  const chips = byClass(reg.c(props), 'dqp-chip')
+  return { labels: chips.slice(0, 2).map((c) => textOf(c)), dict: box._dicts[tKeys || language.split('-')[0]] }
+}
+const deSeed = freshSeed({ language: 'de-DE' })
+assert.deepEqual(deSeed.labels, [deSeed.dict['default.continue.label'], deSeed.dict['default.release.label']], 'navigator de-DE seeds German defaults')
+const frSeed = freshSeed({ language: 'en-US', tKeys: 'fr' })
+assert.deepEqual(frSeed.labels, [frSeed.dict['default.continue.label'], frSeed.dict['default.release.label']], 'host-bound French t wins over navigator en-US')
+assert.equal(frSeed.dict['default.release.text'], ALL_SEVEN.fr, 'French four-step text matches')
 
 /* ---------------- openManager: settings jump ---------------- */
 
@@ -668,7 +735,7 @@ const dockWithoutT = dockReg.component({
   inputActions: { setDraft: () => {} },
   openManager: () => false,
 })
-assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 5, 'dock renders without a t prop')
+assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 3, 'dock renders without a t prop')
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 

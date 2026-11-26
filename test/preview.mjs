@@ -218,7 +218,7 @@ const manageIconDockHtml = serialize(manageIconTree)
 manageSelect().props.onChange({ target: { value: 'hidden' } })
 const manageHiddenTree = render('preview-dock-manage-hidden', dock, dockStub)
 assert.equal(buttonsByClass(manageHiddenTree, 'dqp-chip-manage').length, 0, 'the hidden manage entry renders no manage chip')
-assert.equal(buttonsByClass(manageHiddenTree, 'dqp-chip').length, 5, 'the phrases and the fold chip still render')
+assert.equal(buttonsByClass(manageHiddenTree, 'dqp-chip').length, 3, 'the two phrases and the fold chip still render')
 const manageHiddenDockHtml = serialize(manageHiddenTree)
 manageSelect().props.onChange({ target: { value: 'text' } }) // back to the default for the pages below
 

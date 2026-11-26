@@ -28,7 +28,7 @@
 
 ## 安装
 
-前置：DSH 桌面端或 Web 端（0.2.2 及以上）。插件没有运行时依赖，也没有构建步骤。
+前置：DSH 桌面端或 Web 端，支持版本 `^0.2.2-rc.3`（0.2.2-rc.3 起，不含 0.3.0 及以上）——与包内 `engines.dsh` 及市场索引 `versions[].engines.dsh` 一致。插件分类为**界面增强（UI Enhancements）**，与市场索引 `metadata.categories.ui` / `metadata.category: ui` 一致。插件没有运行时依赖，也没有构建步骤。
 
 **方式 A（npm，推荐）**
 

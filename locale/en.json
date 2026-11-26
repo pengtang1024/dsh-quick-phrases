@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Quick phrases",
-    "description": "A row of phrase chips next to the composer; each chip's caption and sent text are edited separately. Under Settings → Quick phrases, five options are available: Position (below the composer / above the composer / composer tool row, default below), On click (send right away / fill the composer, default send right away), Phrase row (show the full row / fold into a pill / hide completely, default show the full row), Manage button (text button / gear icon / hidden, default text button), and When the composer has text (fold automatically / keep it visible, default fold automatically).",
+    "description": "A row of phrase chips next to the composer; each chip's caption and sent text are edited separately. Under Settings → Quick phrases, five options are available: Position (below the composer / above the composer / composer tool row, default below), On click (send right away / fill the composer, default send right away), Phrase row (show the full row / fold into a pill / hide completely, default show the full row), Manage button (text button / gear icon / hidden, default text button), and When the composer has text (fold automatically / keep it visible, default fold automatically). Supports DSH ^0.2.2-rc.3 (from 0.2.2-rc.3 up to, but not including, 0.3.0); category: UI Enhancements.",
     "detail": "docs/DETAIL.en.md"
   }
 }

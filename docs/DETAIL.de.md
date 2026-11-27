@@ -2,7 +2,11 @@
 
 ## Was es tut
 
-Fügt neben dem Eingabefeld eine Zeile mit Phrasen-Schaltflächen hinzu (`继续`, `提交`, `推送`, `发版` …). Ein Klick sendet den **Text** der Phrase direkt ab; die Schaltfläche zeigt nur ihre **Beschriftung**. Beides wird getrennt bearbeitet, sodass die Schaltfläche kurz bleiben kann, während die gesendete Nachricht ein vollständiger Satz ist.
+Fügt neben dem Eingabefeld eine Zeile mit Phrasen-Schaltflächen hinzu (`继续`, `提交`, `推送`, `发版` …).
+
+- **Beschriftung**: die Schaltfläche zeigt nur den kurzen Namen der Phrase.
+- **Text**: ein Klick sendet den vollständigen Text der Phrase direkt ab.
+- Beides wird getrennt bearbeitet, sodass die Schaltfläche kurz bleiben kann, während die gesendete Nachricht ein vollständiger Satz ist.
 
 **Das Klickverhalten ist konfigurierbar** (Standard: direkt senden):
 
@@ -28,7 +32,8 @@ Alle drei Zeilen sind registriert, aber nur die ausgewählte wird gerendert — 
 Die Phrasenzeile soll beim Schreiben nicht im Weg sein: Sie kann bei Bedarf eingeklappt werden, und ihre dauerhafte Form ist eine Einstellung:
 
 - **Manuell einklappen**: Klicke auf `收起 ▾` am Ende der Zeile; die ganze Zeile schrumpft zu einer kleinen Pille `▸ 快捷短语`. Klicke auf die Pille, um sie vorübergehend auszuklappen, und erneut auf „收起", um sie wieder einzuklappen.
-- **Automatisch einklappen** (Standard): Wenn unter „Wenn das Eingabefeld Text enthält" die Option „Automatisch einklappen" gewählt ist, schrumpft die Zeile zur Pille, sobald Text oder Anhänge im Feld stehen, und klappt sich nach dem Leeren des Entwurfs wieder aus. Wähle „Sichtbar lassen", damit die ganze Zeile dauerhaft bleibt.
+- **Automatisch einklappen** (Standard): Wenn unter „Wenn das Eingabefeld Text enthält" die Option „Automatisch einklappen" gewählt ist, schrumpft die Zeile zur Pille, sobald Text oder Anhänge im Feld stehen, und klappt sich nach dem Leeren des Entwurfs wieder aus.
+- **Sichtbar lassen**: wähle diese Option, damit die ganze Zeile dauerhaft bleibt.
 
 Nach dem Ausklappen der Pille verhält sich ein Klick auf eine Phrase genau wie bei offener Zeile: Ist bereits Text im Eingabefeld, wird er an der Cursorposition eingefügt und der Entwurf nicht überschrieben.
 
@@ -36,15 +41,41 @@ Der Dropdown **Phrasenzeile anzeigen** in den Einstellungen fasst die dauerhafte
 
 - **Ganze Zeile anzeigen**: Die Zeile bleibt dauerhaft, und „收起" am Zeilenende kann sie weiterhin vorübergehend einklappen;
 - **Zur Pille einklappen**: Nur eine kleine Pille bleibt neben dem Eingabefeld; ein Klick darauf klappt sie aus;
-- **Vollständig verbergen**: Die Zeile verschwindet vollständig aus der Oberfläche, **ohne dass auch nur die Pille bleibt** — es wird nichts angezeigt. Der einzige Weg zurück führt zu **Einstellungen → Schnellphrasen**, wo der Dropdown auf eine der ersten beiden Optionen gesetzt wird (bei „Vollständig verbergen" steht daneben „整排已隐藏"). Die Rückkehr zu „Ganze Zeile anzeigen" löscht zugleich den Einklappzustand und stellt die ganze Zeile direkt wieder her.
+- **Vollständig verbergen**: Die Zeile verschwindet vollständig aus der Oberfläche, **ohne dass auch nur die Pille bleibt** — es wird nichts angezeigt.
+  - Der einzige Weg zurück führt zu **Einstellungen → Schnellphrasen**, wo der Dropdown auf eine der ersten beiden Optionen gesetzt wird (bei „Vollständig verbergen" steht daneben „整排已隐藏").
+  - Die Rückkehr zu „Ganze Zeile anzeigen" löscht zugleich den Einklappzustand und stellt die ganze Zeile direkt wieder her.
 
 Die Schaltfläche `收起 ▾` am Zeilenende entspricht der Wahl von „Zur Pille einklappen". Dieser Dropdown speichert keinen eigenen Zustand: Sein Wert wird aus `dsh.quick-phrases.hidden.v1` (hat Vorrang) und `dsh.quick-phrases.collapsed.v1` abgeleitet; beim Umschalten werden diese beiden vorhandenen Schlüssel gemeinsam geschrieben.
+
+> **Hinweis**: Beide Schlüssel sind bereits vorhanden; das Umschalten schreibt sie nur in Kombination neu — es wird kein neuer Speicherschlüssel angelegt.
+
+### Automatisches Ausblenden auf schmalen Bildschirmen
+
+Wird das Fenster schmaler, gibt die Zeile ihre Elemente **nacheinander entsprechend der tatsächlich verfügbaren Breite** auf:
+
+- ohne Einstellung und ohne festen Pixel-Schwellenwert;
+- die Berechnung nutzt die gemessene Breite, sodass kurze und lange Beschriftungen gleichermaßen korrekt abgestuft werden.
+
+1. zuerst die Schaltfläche **收起** (am wenigsten wichtig);
+2. dann der Zugang **Verwalten**;
+3. dann die Phrasen **von der letzten nach vorn**, die vorderen bleiben am längsten.
+
+Bei extrem geringer Breite **bleibt nur die erste verwendbare Phrase**; die Zeile wird nie leer, und ohne Phrasen bleiben Einklappen- und Verwalten-Zugang erreichbar. Beim Verbreitern des Fensters kommen die Elemente nach denselben Regeln zurück.
+
+Auch wenn die Einklappen-Schaltfläche auf schmalen Bildschirmen entfällt, lässt sich die Zeile weiter einklappen:
+
+- ein Entwurf faltet sie mit „Automatisch einklappen" zur Pille;
+- oder Sie wählen „Zur Pille einklappen" im Dropdown „Phrasenzeile anzeigen".
+
+Entfällt der Verwalten-Zugang, öffnet **Einstellungen → Schnellphrasen** weiterhin den Verwaltungsbereich. Die drei Zustände, das automatische Einklappen und das Verbergen einzelner Phrasen bleiben unverändert.
 
 Eine einzelne Phrase lässt sich im Verwaltungsbereich über den **Augen**-Schalter auf ihrer Karte verbergen: Danach erscheint ihre Schaltfläche nicht mehr in der Zeile, die Karte bleibt im Verwaltungsbereich und ist mit „已隐藏" markiert; ein weiterer Klick stellt sie wieder sichtbar.
 
 ## Phrasen verwalten
 
 Öffne **Einstellungen → Schnellphrasen**. Die Seite hat zwei Ebenen: oben fünf Verhaltensoptionen, unten die Phrasenliste.
+
+> **Optimierung für kleine Bildschirme**: Auf schmalen Bildschirmen (≤560px) wird im Verwalter nur das Layout angepasst — Beschriftung und Dropdown stehen in einer Zeile, Erklärungen bleiben vollständig, Touch-Ziele werden größer, Abschnittsbuttons teilen sich eine Zeile, Ränder werden enger und langer Text umbricht an beliebiger Stelle; **es wird kein Element entfernt und keine Funktion geändert** (ein anderer Mechanismus als das breitenbasierte Ausblenden der Zeile, siehe oben).
 
 **Verhaltensoptionen** (gelten sofort nach Auswahl, kein Neustart nötig). Werte, Standardwert und Wirkung der fünf Optionen:
 
@@ -66,15 +97,33 @@ Eine einzelne Phrase lässt sich im Verwaltungsbereich über den **Augen**-Schal
 - **✕**: Der erste Klick verwandelt die Schaltfläche nur in „Bestätigen"; erst ein zweiter Klick innerhalb von vier Sekunden löscht die Phrase wirklich und verhindert versehentliches Löschen.
 - **Phrase hinzufügen** fügt eine leere Karte an und setzt den Cursor auf die Beschriftung; **Standardwerte wiederherstellen** wechselt beim ersten Klick in den Bestätigungszustand und stellt beim zweiten die vier integrierten Phrasen wieder her.
 
-Änderungen werden sofort gespeichert und angewendet, ohne Neustart. Die Phrasen liegen im lokalen Browserspeicher (Schlüssel `localStorage` `dsh.quick-phrases.v1`; die Position in `dsh.quick-phrases.placement.v1`, das Klickverhalten in `dsh.quick-phrases.click.v1`, der Einklappzustand in `dsh.quick-phrases.collapsed.v1`, die Option für automatisches Einklappen in `dsh.quick-phrases.autohide.v1`, der Zustand des vollständigen Verbergens in `dsh.quick-phrases.hidden.v1` und die Form des Verwaltungszugangs in `dsh.quick-phrases.manage.v1`), entsprechend der Web-Speicher-Isolation von DSH — ein anderer Rechner oder gelöschte Websitedaten lassen sie verloren gehen. Der Dropdown „Phrasenzeile anzeigen" belegt keinen eigenen Schlüssel: Er liest und schreibt `hidden.v1` und `collapsed.v1`.
+Änderungen werden sofort gespeichert und angewendet, ohne Neustart. Die Phrasen liegen im lokalen Browserspeicher (`localStorage`), entsprechend der Web-Speicher-Isolation von DSH — ein anderer Rechner oder gelöschte Websitedaten lassen sie verloren gehen. Jeder Zustand entspricht einem Schlüssel:
+
+```text
+dsh.quick-phrases.v1             Phrasenliste
+dsh.quick-phrases.placement.v1   Position
+dsh.quick-phrases.click.v1       Klickverhalten
+dsh.quick-phrases.collapsed.v1   Einklappzustand
+dsh.quick-phrases.autohide.v1    Option für automatisches Einklappen
+dsh.quick-phrases.hidden.v1      Zustand des vollständigen Verbergens
+dsh.quick-phrases.manage.v1      Form des Verwaltungszugangs
+```
+
+Der Dropdown „Phrasenzeile anzeigen" belegt keinen eigenen Schlüssel: Er liest und schreibt `hidden.v1` und `collapsed.v1`.
 
 ## Direkt aus dem Eingabefeld öffnen
 
-Die Schaltfläche **Verwalten** am Zeilenende führt zur selben Einstellungsseite (ist die Zeile zur Pille eingeklappt, zuerst ausklappen). Der Zugang lässt sich in den Einstellungen auf ein Zahnrad-Symbol umstellen oder verbergen; ist er verborgen, erscheint am Zeilenende keine Verwaltungsschaltfläche mehr und **Einstellungen → Schnellphrasen** ist der Zugangsweg. Falls der Einstieg in die Einstellungen in der aktuellen Oberfläche noch nicht eingebunden ist, erscheint stattdessen „请在『设置 — 快捷短语』中管理".
+Die Schaltfläche **Verwalten** am Zeilenende führt zur selben Einstellungsseite (ist die Zeile zur Pille eingeklappt, zuerst ausklappen).
+
+- Der Zugang lässt sich in den Einstellungen auf ein Zahnrad-Symbol umstellen oder verbergen.
+- Ist er verborgen, erscheint am Zeilenende keine Verwaltungsschaltfläche mehr und **Einstellungen → Schnellphrasen** ist der Zugangsweg.
+- Falls der Einstieg in die Einstellungen in der aktuellen Oberfläche noch nicht eingebunden ist, erscheint stattdessen „请在『设置 — 快捷短语』中管理".
 
 ## Gestaltung
 
-Schaltflächen, Felder und Karten verwenden die semantischen Tokens des Hosts (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) und folgen damit dem dunklen und hellen Design von DSH. Die Vordergrundfarbe der primären Schaltfläche nutzt `--dsw-alias-label-primary-foreground`, entsprechend der Primary-Variante der Host-Schaltfläche, damit der Kontrast in beiden Themen gewahrt bleibt.
+Schaltflächen, Felder und Karten verwenden die semantischen Tokens des Hosts (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) und folgen damit dem dunklen und hellen Design von DSH.
+
+Die Vordergrundfarbe der primären Schaltfläche nutzt `--dsw-alias-label-primary-foreground`, entsprechend der Primary-Variante der Host-Schaltfläche, damit der Kontrast in beiden Themen gewahrt bleibt.
 
 ## Grenzen
 

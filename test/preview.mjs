@@ -316,6 +316,88 @@ for (const dark of [true, false]) {
   }
 }
 
+/* Narrow-screen degradation: the same row at four probe widths, so the
+   collapse -> manage -> phrases-from-the-end order can be eyeballed. */
+{
+  const widthProbe = sandbox.window.__DQP_WIDTH_FIT__
+  assert.ok(widthProbe && typeof widthProbe.fit === 'function', 'the width-fit probe is available')
+
+  // Four phrases make every shedding step visible at once.
+  const clickButton = (tree, className, index = 0) => {
+    const btn = buttonsByClass(tree, className)[index]
+    assert.ok(btn, 'button ' + className + '[' + index + '] exists')
+    btn.props.onClick()
+  }
+  const managerRows = () =>
+    collectNodes(render('preview-widthfit-manager', manager, { t })).filter(
+      (n) => n.type === 'div' && String(n.props?.className ?? '').split(' ').includes('dqp-row'),
+    )
+  clickButton(render('preview-widthfit-manager', manager, { t }), 'dqp-btn-primary')
+  clickButton(render('preview-widthfit-manager', manager, { t }), 'dqp-btn-primary')
+  const extra = [['提交', '提交改动并推送'], ['推送', '推送到远端']]
+  extra.forEach(([label, text], i) => {
+    const row = managerRows()[2 + i]
+    assert.ok(row, 'the added manager row exists')
+    const input = collectNodes(row).find((n) => n.type === 'input')
+    const textarea = collectNodes(row).find((n) => n.type === 'textarea')
+    assert.ok(input && textarea, 'the added row has label and sent-text editors')
+    input.props.onChange({ target: { value: label } })
+    textarea.props.onChange({ target: { value: text } })
+  })
+
+  // Four 50px phrases + 24px collapse + 24px manage + gaps of 6px.
+  widthProbe.setChipWidths([50, 50, 50, 50])
+  widthProbe.setTrailingWidths(24, 24)
+  const tiers = [
+    { name: 'wide', px: 280, label: '宽（全部保留）', expect: ['继续', '发版', '提交', '推送', 'collapse', 'manage'] },
+    { name: 'medium', px: 250, label: '中（先丢收起）', expect: ['继续', '发版', '提交', '推送', 'manage'] },
+    { name: 'narrow', px: 150, label: '窄（再丢管理，短语从末尾丢）', expect: ['继续', '发版'] },
+    { name: 'extreme', px: 40, label: '极窄（只剩第一条短语）', expect: ['继续'] },
+  ]
+  const tierHtml = []
+  for (const tier of tiers) {
+    widthProbe.setAvailableWidth(tier.px)
+    const tree = render('preview-widthfit-' + tier.name, dock, dockStub)
+    const textOf = (node) => {
+      if (node == null || node === false) return ''
+      if (typeof node === 'string' || typeof node === 'number') return String(node)
+      if (Array.isArray(node)) return node.map(textOf).join('')
+      return (node.children ?? []).map(textOf).join('')
+    }
+    const kinds = buttonsByClass(tree, 'dqp-chip').map((btn) => {
+      const cn = String(btn.props?.className ?? '')
+      if (cn.includes('dqp-chip-collapse')) return 'collapse'
+      if (cn.includes('dqp-chip-manage')) return 'manage'
+      return textOf(btn).trim()
+    })
+    assert.deepEqual(kinds, tier.expect, tier.name + ' tier sheds chips in priority order')
+    tierHtml.push(
+      `<p class="stage-label">界面示意图 · ${tier.label}（可用宽度 ${tier.px}px）</p>` +
+      `<div class="composer"><div class="line">发消息或创建任务，/ 调用指令，@ 文件或对话</div>` +
+      `<div class="status"><span>3 轮 114 步 · 120 tok/s</span><span style="margin-left:auto"></span>${serialize(tree)}</div></div>`,
+    )
+  }
+  widthProbe.reset() // restore real DOM measurement after the probe-driven renders
+
+  const widthCss = `
+    body { padding: 16px; }
+    .composer { width: 300px; box-sizing: border-box; border-radius: 22px; padding: 14px 16px 10px; background: var(--dsw-alias-bg-layer-1, #262626); box-shadow: inset 0 0 0 .5px var(--dsw-alias-border-l2, #444); }
+    .composer + .stage-label { margin-top: 18px; }
+    .line { height: 34px; color: var(--dsw-alias-label-caption, #7d7d7d); }
+    .status { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--dsw-alias-label-caption, #7d7d7d); }
+  `
+  for (const dark of [true, false]) {
+    const html = `<!doctype html><html><head><meta charset="utf-8"><style>${themeCss}</style><style>${PAGE_CSS}${widthCss}</style></head>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="stage-label">界面示意图 · 短语行按宽度逐级舍弃（${dark ? '深色' : '浅色'}）</p>
+${tierHtml.join('\n')}
+</body></html>`
+    const file = '/tmp/dqp-widthfit-' + (dark ? 'dark' : 'light') + '.html'
+    fs.writeFileSync(file, html)
+    console.log('wrote', file)
+  }
+}
+
 /* Stack page: below / above placements inside a composer stack, so the row can be
    checked against the card's own width the way the host lays it out. */
 {
@@ -364,6 +446,48 @@ for (const dark of [true, false]) {
   }
 }
 
+/* Narrow-screen manager preview: the real manager HTML at phone widths (390px and
+   320px), so the compact @media (max-width:560px) layout can be eyeballed —
+   labels beside dropdowns, full explanation lines, 36px controls, wrapped
+   previews, and no horizontal overflow. The --shot sizes below set the device
+   width so the stylesheet's media query actually applies. */
+for (const width of [390, 320]) {
+  for (const dark of [true, false]) {
+    const narrowCss = `
+      html, body { width: 100%; max-width: 100%; box-sizing: border-box; }
+      body { padding: 0; }
+      .viewport { width: 100%; box-sizing: border-box; }
+      .probe { margin: 0; padding: 6px 12px; font: 11px/16px monospace; color: var(--dsw-alias-label-secondary, #b9b9b9); }
+      .overflow-pass { color: #4caf50; }
+      .overflow-fail { color: #e35d5d; font-weight: bold; }
+    `
+    // The inline probe measures real layout width; the screenshot shows the
+    // result next to the page, so a horizontal overflow cannot hide in a PNG.
+    const overflowProbe = `<script>
+      window.addEventListener('load', function () {
+        var root = document.documentElement;
+        var overflow = root.scrollWidth - root.clientWidth;
+        var el = document.getElementById('overflow-result');
+        el.textContent = overflow <= 0 ? '无横向溢出 (scrollWidth=' + root.scrollWidth + ')' :
+          '横向溢出 ' + overflow + 'px (clientWidth=' + root.clientWidth + ', scrollWidth=' + root.scrollWidth + ')';
+        el.className = overflow <= 0 ? 'overflow-pass' : 'overflow-fail';
+      });
+    </script>`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}, initial-scale=1"><style>${themeCss}</style><style>${PAGE_CSS}${narrowCss}</style>${overflowProbe}</head>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="probe">窄屏预览 · 管理页 ${width}px（${dark ? '深色' : '浅色'}）· 横向检查：<span id="overflow-result">测量中…</span></p>
+<div class="viewport">
+${managerHtml}
+</div></body></html>`
+    const file = '/tmp/dqp-narrow-' + width + '-' + (dark ? 'dark' : 'light') + '.html'
+    fs.writeFileSync(file, html)
+    assert.ok(html.includes('dqp-option-hint'), 'the narrow ' + width + 'px page keeps its option explanations')
+    assert.ok(html.includes('dqp-icon-danger'), 'the narrow ' + width + 'px page keeps the delete controls')
+    assert.ok(html.includes('dqp-star-link'), 'the narrow ' + width + 'px page keeps the star link')
+    console.log('wrote', file, html.length + ' bytes')
+  }
+}
+
 if (process.argv.includes('--shot')) {
   const shots = [
     ['/tmp/dqp-dark.html', '/tmp/dqp-dark.png', '760,1190'],
@@ -374,6 +498,12 @@ if (process.argv.includes('--shot')) {
     ['/tmp/dqp-stack-light.html', '/tmp/dqp-stack-light.png', '980,460'],
     ['/tmp/dqp-hidden-dark.html', '/tmp/dqp-hidden-dark.png', '760,700'],
     ['/tmp/dqp-hidden-light.html', '/tmp/dqp-hidden-light.png', '760,700'],
+    ['/tmp/dqp-widthfit-dark.html', '/tmp/dqp-widthfit-dark.png', '420,1180'],
+    ['/tmp/dqp-widthfit-light.html', '/tmp/dqp-widthfit-light.png', '420,1180'],
+    ['/tmp/dqp-narrow-390-dark.html', '/tmp/dqp-narrow-390-dark.png', '390,1600'],
+    ['/tmp/dqp-narrow-390-light.html', '/tmp/dqp-narrow-390-light.png', '390,1600'],
+    ['/tmp/dqp-narrow-320-dark.html', '/tmp/dqp-narrow-320-dark.png', '320,1800'],
+    ['/tmp/dqp-narrow-320-light.html', '/tmp/dqp-narrow-320-light.png', '320,1800'],
   ]
   const chromeMissing = !fs.existsSync(CHROME)
   if (chromeMissing) {

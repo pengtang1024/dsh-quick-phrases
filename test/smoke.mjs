@@ -14,23 +14,154 @@ const localStorage = {
   removeItem: (k) => storage.delete(k),
 }
 
-/* Minimal hook emulation: one cell array per component name, cursor per render. */
+/* ------------------------------------------------------------------ *
+ * Fidelity harness. The earlier sandbox ran effects synchronously and
+ * handed out a fresh useRef object on every render, which silently
+ * bypassed the real measurement useEffect (and its deferred rAF chain).
+ * Here hook cells persist per component instance, effects run after the
+ * element tree is committed (with cleanups), and the rAF / setTimeout /
+ * ResizeObserver seams plus a measurable fake DOM are controllable.
+ * ------------------------------------------------------------------ */
+
+const storageListeners = new Set()
+const frames = []
+let frameSeq = 0
+let rafScheduled = 0
+let timeoutScheduled = 0
+let useRaf = true
+const observers = []
+class FakeResizeObserver {
+  constructor(cb) {
+    this.cb = cb
+    this.targets = []
+    observers.push(this)
+  }
+  observe(target) { this.targets.push(target) }
+  disconnect() { this.targets = []; this.disconnected = true }
+  fire() { this.cb() }
+}
+let ResizeObserverCtor = FakeResizeObserver
+
+function scheduleFrame(cb, kind) {
+  const id = ++frameSeq
+  frames.push({ id, cb, kind })
+  if (kind === 'raf') rafScheduled += 1
+  else timeoutScheduled += 1
+  return id
+}
+function cancelFrame(id) {
+  const at = frames.findIndex((job) => job.id === id)
+  if (at >= 0) frames.splice(at, 1)
+}
+function flushFrames(limit = 1000) {
+  let ran = 0
+  while (frames.length > 0 && ran < limit) {
+    const job = frames.shift()
+    ran += 1
+    job.cb()
+  }
+  return ran
+}
+function resetFrames() {
+  frames.length = 0
+  rafScheduled = 0
+  timeoutScheduled = 0
+}
+
+const dom = { rowWidth: 0, childWidths: {} }
+function childWidth(el) {
+  const props = el.props ?? {}
+  const id = props['data-dqp-phrase-id']
+  if (id !== undefined && id !== null) return dom.childWidths[id] ?? 0
+  const cn = String(props.className ?? '')
+  if (cn.includes('dqp-chip-collapse')) return dom.childWidths.collapse ?? 0
+  if (cn.includes('dqp-chip-manage')) return dom.childWidths.manage ?? 0
+  if (cn.includes('dqp-pill')) return dom.childWidths.pill ?? 0
+  return dom.childWidths.other ?? 0
+}
+function makeDomNode(el) {
+  const props = el.props ?? {}
+  const attrs = {}
+  for (const [key, value] of Object.entries(props)) {
+    if (['children', 'ref', 'key', 'style'].includes(key)) continue
+    if (value == null || typeof value === 'function' || typeof value === 'object') continue
+    attrs[key] = value
+  }
+  return {
+    __el: el,
+    tag: el.type,
+    className: String(props.className ?? ''),
+    attrs,
+    children: [],
+    get clientWidth() { return dom.rowWidth },
+    get offsetWidth() { return childWidth(this.__el) },
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null
+    },
+    getBoundingClientRect() { return { width: childWidth(this.__el) } },
+  }
+}
+
+/* One cell array per component name (render name), cursor reset per render. */
 const stores = new Map()
+const lastCleanups = new Map()
+const refsByRender = new Map()
+const domRefs = new Set()
 let cells = []
 let cursor = 0
+let pendingEffects = []
+let newRefs = []
+
 function beginRender(name) {
   cells = stores.get(name) ?? []
   stores.set(name, cells)
   cursor = 0
+  pendingEffects = []
+  newRefs = []
+  // A DOM ref is nulled when its element disappears from the tree (e.g. the
+  // row becomes a folded pill with no measured node); it is re-attached below
+  // when createElement sees the ref again. Plain value refs are left alone.
+  for (const ref of refsByRender.get(name) ?? []) {
+    if (domRefs.has(ref)) ref.current = null
+  }
 }
+
+/* The measurement cache lives in a useRef whose .current holds `phrases`;
+   exposing the harness's own ref cell lets the tests assert the cache directly. */
+function metricsRefOf(name) {
+  return (refsByRender.get(name) ?? []).find(
+    (ref) => ref.current && typeof ref.current === 'object' && 'phrases' in ref.current,
+  )
+}
+
 function render(name, component, props) {
   beginRender(name)
-  return component(props)
+  const tree = component(props)
+  const previous = lastCleanups.get(name) ?? []
+  previous.forEach((cleanup) => cleanup())
+  const cleanups = []
+  for (const effect of pendingEffects) {
+    const cleanup = effect()
+    if (typeof cleanup === 'function') cleanups.push(cleanup)
+  }
+  lastCleanups.set(name, cleanups)
+  refsByRender.set(name, newRefs)
+  return tree
 }
 
 const React = {
   createElement(type, props, ...children) {
-    return { type, props: props ?? {}, children }
+    const el = { type, props: props ?? {}, children }
+    const ref = el.props.ref
+    if (ref && typeof ref === 'object' && 'current' in ref) {
+      domRefs.add(ref)
+      const node = makeDomNode(el)
+      node.children = children
+        .filter((child) => child && typeof child === 'object' && !Array.isArray(child))
+        .map((child) => makeDomNode(child))
+      ref.current = node
+    }
+    return el
   },
   useState(init) {
     const index = cursor++
@@ -40,9 +171,12 @@ const React = {
     }
     return [cells[index], set]
   },
-  useEffect(fn) { fn() },
+  useEffect(fn) { pendingEffects.push(fn) },
   useRef(value) {
-    return { current: value ?? null }
+    const index = cursor++
+    if (!(index in cells)) cells[index] = { current: value ?? null }
+    if (!newRefs.includes(cells[index])) newRefs.push(cells[index])
+    return cells[index]
   },
 }
 
@@ -51,10 +185,13 @@ const sandbox = {
   console,
   window: {
     localStorage,
-    setTimeout: () => 1,
-    clearTimeout: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    setTimeout: (cb) => scheduleFrame(cb, 'timeout'),
+    clearTimeout: (id) => cancelFrame(id),
+    addEventListener: (name, fn) => { if (name === 'storage') storageListeners.add(fn) },
+    removeEventListener: (name, fn) => { if (name === 'storage') storageListeners.delete(fn) },
+    get requestAnimationFrame() { return useRaf ? (cb) => scheduleFrame(cb, 'raf') : undefined },
+    cancelAnimationFrame: (id) => cancelFrame(id),
+    get ResizeObserver() { return ResizeObserverCtor },
   },
   require: (name) => {
     if (name === 'react') return React
@@ -253,7 +390,332 @@ assert.ok(
   'a failed settings jump shows the fallback hint',
 )
 
+/* ---------------- width fitting: shed collapse -> manage -> phrases from the end ---------------- */
+
+const widthFit = sandbox.window.__DQP_WIDTH_FIT__
+assert.equal(typeof widthFit.fit, 'function', 'the width fitter is exposed on the sandbox window')
+assert.equal(typeof widthFit.setAvailableWidth, 'function', 'the available-width probe is exposed')
+assert.equal(typeof widthFit.setChipWidths, 'function', 'the chip-width probe is exposed')
+assert.equal(typeof widthFit.setTrailingWidths, 'function', 'the trailing-width probe is exposed')
+assert.equal(typeof widthFit.reset, 'function', 'the width probe can be reset')
+assert.equal(typeof widthFit.enable, 'function', 'the probe has an explicit enable switch')
+assert.equal(typeof widthFit.disable, 'function', 'the probe has an explicit disable switch')
+// fit() returns an object created inside the VM realm; spreading it into a
+// host-realm object keeps assert.deepEqual's prototype check happy.
+const fit = (available, options) => ({ ...widthFit.fit(available, options) })
+
+// Four 40px phrases + 20px collapse + 20px manage + 5 gaps of 6px = 230px.
+const fitBase = {
+  phraseWidths: [40, 40, 40, 40],
+  collapseWidth: 20,
+  manageWidth: 20,
+  manage: true,
+  gap: 6,
+}
+assert.deepEqual(fit(230, fitBase), { phraseCount: 4, collapse: true, manage: true }, 'a wide row keeps every chip')
+assert.deepEqual(fit(210, fitBase), { phraseCount: 4, collapse: false, manage: true }, 'the collapse chip is shed first')
+assert.deepEqual(fit(190, fitBase), { phraseCount: 4, collapse: false, manage: false }, 'the manage chip is shed next')
+assert.deepEqual(fit(150, fitBase), { phraseCount: 3, collapse: false, manage: false }, 'then phrases go from the end')
+assert.deepEqual(fit(100, fitBase), { phraseCount: 2, collapse: false, manage: false }, 'phrase shedding continues one by one')
+assert.deepEqual(fit(10, fitBase), { phraseCount: 1, collapse: false, manage: false }, 'an extremely narrow row keeps one phrase and nothing else')
+// The hidden manage entry feeds `manage: false` in; that is already false in the
+// plan before any width pressure, so shedding it must not be attributed to width.
+assert.deepEqual(
+  fit(300, { ...fitBase, manage: false }),
+  { phraseCount: 4, collapse: true, manage: false },
+  'manage:false stays false even at a wide width',
+)
+assert.deepEqual(
+  fit(10, { ...fitBase, manage: false }),
+  { phraseCount: 1, collapse: false, manage: false },
+  'manage:false and a narrow width still keep the first phrase',
+)
+assert.deepEqual(
+  fit(0, { ...fitBase, phraseWidths: [] }),
+  { phraseCount: 0, collapse: true, manage: true },
+  'with no phrase at all both trailing controls stay reachable',
+)
+
+// Drive the real Chips render through the probe. Two 60px phrases + 20px
+// collapse + 20px manage + 3 gaps of 6px = 178px.
+widthFit.setChipWidths([60, 60])
+widthFit.setTrailingWidths(20, 20)
+const chipKinds = (tree) =>
+  byClass(tree, 'dqp-chip').map((chip) => {
+    const cn = String(chip.props.className ?? '')
+    if (cn.includes('dqp-chip-collapse')) return 'collapse'
+    if (cn.includes('dqp-chip-manage')) return 'manage'
+    return textOf(chip).trim()
+  })
+const widthTiers = [
+  { name: 'wf-wide', px: 178, expect: ['继续', '发版', 'collapse', 'manage'] },
+  { name: 'wf-mid', px: 175, expect: ['继续', '发版', 'manage'] },
+  { name: 'wf-no-manage', px: 150, expect: ['继续', '发版'] },
+  { name: 'wf-narrow', px: 100, expect: ['继续'] },
+  { name: 'wf-extreme', px: 20, expect: ['继续'] },
+]
+for (const tier of widthTiers) {
+  widthFit.setAvailableWidth(tier.px)
+  assert.deepEqual(chipKinds(render(tier.name, dockReg.component, dockProps)), tier.expect, tier.name + ' renders the fitted chip order')
+}
+widthFit.reset()
+assert.deepEqual(
+  chipKinds(render('wf-reset', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'reset restores real DOM measurement and renders the full row without a DOM',
+)
+
+/* ---------------- probe gating: production must not read a stale probe ---------------- */
+// Real bug: a width probe left enabled by one render must never narrow a later
+// production render. reset() disables AND clears pins; each setter opts in.
+widthFit.setAvailableWidth(20)
+widthFit.setChipWidths([40, 40])
+widthFit.setTrailingWidths(20, 20)
+assert.deepEqual(
+  chipKinds(render('probe-on', dockReg.component, dockProps)),
+  ['继续'],
+  'setters enable the probe without a separate enable() call',
+)
+widthFit.disable()
+assert.deepEqual(
+  chipKinds(render('probe-disabled', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'disable() restores real DOM measurement while pins remain stored',
+)
+widthFit.enable()
+assert.deepEqual(
+  chipKinds(render('probe-re-enabled', dockReg.component, dockProps)),
+  ['继续'],
+  'enable() re-reads the pinned widths',
+)
+widthFit.reset()
+assert.deepEqual(
+  chipKinds(render('probe-reset', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'reset() disables the probe and clears every pin',
+)
+// A stale probe must not change a fresh DOM measured render either.
+widthFit.setAvailableWidth(178)
+widthFit.setChipWidths([60, 60])
+widthFit.setTrailingWidths(20, 20)
+dom.rowWidth = 1000
+dom.childWidths = { continue: 40, release: 40, collapse: 20, manage: 20 }
+resetFrames()
+const gateTree = render('probe-gate-dom', dockReg.component, dockProps)
+assert.deepEqual(chipKinds(gateTree), ['继续', '发版', 'collapse', 'manage'], 'the probe wins while enabled')
+widthFit.reset()
+assert.deepEqual(
+  chipKinds(render('probe-gate-production', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'production render ignores the probe once reset',
+)
+
+/* ---------------- real measurement timing: zero-width first paint + bounded fallback ---------------- */
+// The first paint reports clientWidth === 0 (layout not settled). The component
+// keeps the complete row, then re-measures on rAF (or setTimeout) without ever
+// looping forever. Simulate the callbacks through the harness's frame queue.
+const measureName = 'measure-zero'
+dom.rowWidth = 0
+dom.childWidths = {}
+resetFrames()
+const rafBefore = rafScheduled
+const firstTree = render(measureName, dockReg.component, dockProps)
+assert.deepEqual(
+  chipKinds(firstTree), ['继续', '发版', 'collapse', 'manage'],
+  'a zero-width first paint keeps the full row instead of dropping every chip',
+)
+assert.ok(rafScheduled > rafBefore, 'a rAF re-measure is scheduled when clientWidth is 0')
+// The fake DOM still reports 0: the fallback chain must stop after 3 deferred
+// measures and never schedule an unbounded number of frames.
+const framesBefore = flushFrames()
+assert.equal(framesBefore, 3, 'exactly three deferred re-measures run, then the bounded chain stops')
+assert.equal(rafScheduled - rafBefore, 3, 'the bound holds for the rAF path')
+assert.equal(frames.length, 0, 'no pending frames remain after the bounded chain')
+assert.equal(timeoutScheduled, 0, 'rAF is preferred when available')
+assert.deepEqual(
+  chipKinds(render(measureName, dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'the full row survives even after deferred measures at width 0',
+)
+// Now simulate layout settling between the zero-width paint and the deferred
+// callback: the stale full row descends to the measured width on the fallback.
+dom.rowWidth = 0
+dom.childWidths = { continue: 60, release: 60, collapse: 20, manage: 20 }
+resetFrames()
+const settleTree = render('measure-settle', dockReg.component, dockProps)
+assert.deepEqual(
+  chipKinds(settleTree), ['继续', '发版', 'collapse', 'manage'],
+  'the zero-width paint starts from the full row',
+)
+dom.rowWidth = 150
+flushFrames()
+assert.deepEqual(
+  chipKinds(render('measure-settle', dockReg.component, dockProps)),
+  ['继续', '发版', 'manage'],
+  'deferred re-measure picks up a settled width and sheds the collapse chip',
+)
+// setTimeout fallback when rAF is missing (older WebView / reduced motion).
+useRaf = false
+dom.rowWidth = 0
+dom.childWidths = {}
+resetFrames()
+const rafNoRaf = rafScheduled
+render('measure-no-raf', dockReg.component, dockProps)
+assert.equal(timeoutScheduled, 1, 'the setTimeout(0) fallback is used when rAF is missing')
+const timeoutRuns = flushFrames()
+assert.equal(timeoutRuns, 3, 'the setTimeout fallback is bounded at three too')
+assert.equal(timeoutScheduled, 3, 'the three fallback callbacks all came from setTimeout')
+assert.equal(rafScheduled, rafNoRaf, 'no rAF is scheduled in the fallback path')
+useRaf = true
+
+/* ---------------- ResizeObserver missing: the row still re-measures at least twice ---------------- */
+ResizeObserverCtor = undefined
+dom.rowWidth = 0
+dom.childWidths = {}
+resetFrames()
+const observersBefore = observers.length
+render('measure-no-ro', dockReg.component, dockProps)
+assert.equal(observers.length, observersBefore, 'no ResizeObserver is constructed when the API is missing')
+const roRuns = flushFrames()
+assert.ok(roRuns >= 2, 'at least two fallback measurements run without a ResizeObserver')
+dom.rowWidth = 260
+dom.childWidths = { continue: 50, release: 50, collapse: 24, manage: 24 }
+flushFrames() // the last queued callback now sees a settled width
+assert.deepEqual(
+  chipKinds(render('measure-no-ro-after', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'without a ResizeObserver the deferred pass still adopts the settled width',
+)
+// With a ResizeObserver present, observing + a manual fire must also re-measure.
+ResizeObserverCtor = FakeResizeObserver
+observers.length = 0
+dom.rowWidth = 100
+dom.childWidths = { continue: 40, release: 40, collapse: 20, manage: 20 }
+resetFrames()
+render('measure-ro', dockReg.component, dockProps)
+const ro = observers[observers.length - 1]
+assert.ok(ro && ro.targets.length === 1, 'the row is observed by a ResizeObserver when available')
+flushFrames()
+ro.fire()
+const roChips = chipKinds(render('measure-ro', dockReg.component, dockProps))
+assert.ok(roChips.length < 4, 'a ResizeObserver callback re-measures and sheds chips at the observed width')
+assert.equal(roChips[0], '继续', 'the first phrase survives a ResizeObserver re-measure')
+
+/* ---------------- folded pill must not pollute the per-id cache ---------------- */
+const cacheFoldName = 'cache-fold'
+dom.rowWidth = 300
+dom.childWidths = { continue: 60, release: 60, collapse: 20, manage: 20, pill: 9999 }
+resetFrames()
+render(cacheFoldName, dockReg.component, dockProps)
+flushFrames()
+widthFit.reset()
+// Fold the row through the real collapse chip, using the SAME render name so
+// the hook cells / refs persist across the interaction.
+byClass(render(cacheFoldName, dockReg.component, dockProps), 'dqp-chip-collapse')[0].props.onClick()
+const foldedCacheTree = render(cacheFoldName, dockReg.component, dockProps)
+const foldedCacheChips = byClass(foldedCacheTree, 'dqp-chip')
+assert.equal(foldedCacheChips.length, 1, 'folded row renders one pill')
+assert.ok(foldedCacheChips[0].props.className.includes('dqp-pill'), 'the single chip is the pill')
+assert.equal(foldedCacheChips[0].props['data-dqp-phrase-id'], undefined, 'the pill carries no phrase id')
+const foldMetrics = metricsRefOf(cacheFoldName)
+assert.ok(foldMetrics, 'the measurement cache is a persistent useRef cell')
+assert.ok(
+  !Object.prototype.hasOwnProperty.call(foldMetrics.current.phrases, 'pill'),
+  'the folded pill width is not cached under a phrase id',
+)
+assert.ok(
+  !Object.values(foldMetrics.current.phrases).includes(9999),
+  'no phrase is poisoned by the pill width',
+)
+// Re-expand via the pill's own handler; the persistent cache is exercised end-to-end.
+foldedCacheChips[0].props.onClick()
+dom.childWidths.continue = 60
+dom.childWidths.release = 60
+resetFrames()
+const expandedTree = render(cacheFoldName, dockReg.component, dockProps)
+flushFrames()
+const expandedChips = byClass(expandedTree, 'dqp-chip')
+assert.equal(expandedChips[0].props['data-dqp-phrase-id'], 'continue', 'the first chip is tagged with its phrase id')
+assert.notEqual(expandedChips[0].props['data-dqp-phrase-id'], 'pill', 'the first chip is not tagged as the pill')
+const expandedMetrics = metricsRefOf(cacheFoldName)
+assert.ok(expandedMetrics, 'the measurement cache persists across folding / expanding')
+assert.ok(
+  !Object.values(expandedMetrics.current.phrases).includes(9999),
+  'no phrase inherits the folded pill width after expanding',
+)
+// Behavioral check: at 130px the first phrase (60px) still fits while the
+// trailing controls are shed. If the pill's 9999px had been cached under a
+// phrase id, even the first chip would disappear.
+dom.rowWidth = 130
+resetFrames()
+const narrowExpanded = render(cacheFoldName, dockReg.component, dockProps)
+assert.equal(
+  byClass(narrowExpanded, 'dqp-chip')[0]?.props['data-dqp-phrase-id'],
+  'continue',
+  'the first phrase still fits on its own width after expanding',
+)
+
+/* ---------------- cache is keyed by phrase.id across label/order/CRUD edits ---------------- */
+const storageKey = 'dsh.quick-phrases.v1'
+const originalList = JSON.parse(localStorage.getItem(storageKey))
+const cacheName = 'cache-by-id'
+dom.rowWidth = 400
+dom.childWidths = { a: 30, b: 70, collapse: 20, manage: 20 }
+resetFrames()
+render(cacheName, dockReg.component, dockProps)
+flushFrames()
+widthFit.reset()
+// The DOM tags every phrase chip with its stable id, so even after a label
+// change / reorder / CRUD the chip must map to the correct id. The width
+// probe is reset, so the rendered chip ids reflect the DOM-cache alignment.
+let cacheChips = byClass(render(cacheName, dockReg.component, dockProps), 'dqp-chip')
+assert.deepEqual(cacheChips.slice(0, 2).map((c) => c.props['data-dqp-phrase-id']), ['continue', 'release'], 'initial chips carry the seeded ids')
+
+function setPhrases(list) {
+  localStorage.setItem(storageKey, JSON.stringify(list))
+  // The module caches the list; a storage event is the real-browser signal
+  // that tells mounted rows to reload it (see usePhrases in client.js).
+  for (const fn of storageListeners) fn({ key: storageKey })
+}
+// Change only a label: id stays, so the chip keeps the same id.
+setPhrases([
+  { id: 'continue', label: 'A', text: 'text-a', hidden: false },
+  { id: 'release', label: 'B-NEW-LABEL', text: 'text-b', hidden: false },
+])
+resetFrames()
+cacheChips = byClass(render(cacheName, dockReg.component, dockProps), 'dqp-chip')
+assert.equal(cacheChips[1].props['data-dqp-phrase-id'], 'release', 'the chip follows the unchanged id after a label edit')
+assert.equal(textOf(cacheChips[1]), 'B-NEW-LABEL', 'the new label shows on the same id')
+// Swap order: chip ids must follow the reordered list, not DOM positions.
+setPhrases([
+  { id: 'release', label: 'B-NEW-LABEL', text: 'text-b', hidden: false },
+  { id: 'continue', label: 'A', text: 'text-a', hidden: false },
+])
+resetFrames()
+cacheChips = byClass(render(cacheName, dockReg.component, dockProps), 'dqp-chip')
+assert.deepEqual(cacheChips.slice(0, 2).map((c) => c.props['data-dqp-phrase-id']), ['release', 'continue'], 'chip order follows the reordered list')
+// Remove one and add a fresh id: no id reuse, no leaked width.
+setPhrases([
+  { id: 'release', label: 'B-NEW-LABEL', text: 'text-b', hidden: false },
+  { id: 'new-id', label: 'C', text: 'text-c', hidden: false },
+])
+dom.childWidths['new-id'] = 45
+resetFrames()
+cacheChips = byClass(render(cacheName, dockReg.component, dockProps), 'dqp-chip')
+assert.deepEqual(cacheChips.slice(0, 2).map((c) => c.props['data-dqp-phrase-id']), ['release', 'new-id'], 'chips follow the edited list with fresh ids')
+// Restore the phrase list the original assertions expect.
+localStorage.setItem(storageKey, JSON.stringify(originalList))
+for (const fn of storageListeners) fn({ key: storageKey })
+dom.rowWidth = 1000
+dom.childWidths = {}
+resetFrames()
+
 /* ---------------- hiding: the whole row folds into one pill ---------------- */
+
+// The measurement/fidelity sections above folded and expanded the shared row.
+// Reset the serialized UI toggles so the original hiding assertions start clean.
+localStorage.removeItem('dsh.quick-phrases.collapsed.v1')
+widthFit.reset()
 
 const collapseStored = () => localStorage.getItem('dsh.quick-phrases.collapsed.v1')
 assert.equal(collapseStored(), null, 'nothing stored before the first hide')
@@ -704,8 +1166,7 @@ function freshSeed({ language, tKeys }) {
   const t = tKeys ? ((key) => box._dicts[tKeys][key] ?? key) : undefined
   const props = { inputActions: { setDraft() {} }, openManager: () => false }
   if (t) props.t = t
-  beginRender('fresh-' + language + '-' + tKeys)
-  const chips = byClass(reg.c(props), 'dqp-chip')
+  const chips = byClass(render('fresh-' + language + '-' + tKeys, reg.c, props), 'dqp-chip')
   return { labels: chips.slice(0, 2).map((c) => textOf(c)), dict: box._dicts[tKeys || language.split('-')[0]] }
 }
 const deSeed = freshSeed({ language: 'de-DE' })
@@ -731,12 +1192,149 @@ assert.equal(openedSection, 'quick-phrases', 'manage chip opens the settings sec
 
 /* ---------------- missing `t` seat must not throw ---------------- */
 
-const dockWithoutT = dockReg.component({
+const dockWithoutT = render('dock-without-t', dockReg.component, {
   inputActions: { setDraft: () => {} },
   openManager: () => false,
 })
 assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 3, 'dock renders without a t prop')
-const managerWithoutT = sectionReg.component({})
+const managerWithoutT = render('manager-without-t', sectionReg.component, {})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
-console.log('PASS — click-to-send, dock chips, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+/* ---------------- narrow screens: nothing is shed from the manager ----------------
+ * The fake React sandbox cannot apply CSS media queries, so completeness is
+ * checked on the render tree (which is what the narrow CSS styles) and the
+ * @media (max-width:560px) block is checked to keep every class rule that
+ * lays those elements out. Key selectors only — no brittle whole-block string. */
+
+const cssStyleNodes = (tree) => walk(tree).filter((n) => n.type === 'style')
+const style = cssStyleNodes(render('manager-css', sectionReg.component, { t }))[0]
+assert.ok(style, 'the manager embeds its own stylesheet')
+const managerCss = String(style.children.join(''))
+const mediaStart = managerCss.indexOf('@media (max-width:560px)')
+assert.ok(mediaStart >= 0, 'the manager CSS has a 560px narrow-screen media query')
+// Take the text from @media to the stylesheet end: the narrow block is last.
+const narrowCss = managerCss.slice(mediaStart)
+const cssHas = (fragment, why) =>
+  assert.ok(narrowCss.includes(fragment), 'narrow CSS keeps ' + why)
+for (const [fragment, why] of [
+  ['.dqp-page{padding:', 'the tightened page padding'],
+  ['.dqp-head{flex-wrap:wrap', 'the wrapping masthead'],
+  ['.dqp-desc{overflow-wrap:anywhere}', 'the wrapping description'],
+  ['.dqp-option{display:flex;flex-direction:row', 'the label + dropdown single row'],
+  ['.dqp-option-hint{flex:1 1 100%', 'the full explanation on its own line'],
+  ['.dqp-select-wrap{flex:0 0 44%', 'the 44%-wide dropdown'],
+  ['.dqp-select{width:100%;min-width:0;height:36px', 'the 36px dropdown'],
+  ['.dqp-btn{height:auto;min-height:36px', 'the 36px section buttons'],
+  ['.dqp-section-title{flex:1 1 100%', 'the full-width section title'],
+  ['.dqp-section-head .dqp-btn{flex:1 1 auto', 'the two buttons sharing a row'],
+  ['.dqp-row-head{flex-wrap:wrap', 'the wrapping phrase card head'],
+  ['.dqp-label-input{flex:1 1 100%', 'the full-width name input'],
+  ['.dqp-row-actions{margin-left:auto', 'the action row'],
+  ['.dqp-icon{width:36px;height:36px}', 'the 36px touch targets'],
+  ['.dqp-icon-confirm{width:auto;min-width:36px', 'the 36px confirm target'],
+  ['.dqp-textarea{min-height:52px', 'the taller textarea'],
+  ['.dqp-preview{display:block', 'the wrapping preview'],
+  ['white-space:normal;overflow-wrap:anywhere}', 'the unwrapped preview text'],
+  ['.dqp-foot,.dqp-star{line-height:17px;overflow-wrap:anywhere}', 'the wrapping footer and star line'],
+  ['.dqp-star-link{min-height:36px', 'the 36px star link'],
+]) {
+  cssHas(fragment, why)
+}
+assert.ok(!/\bdisplay\s*:\s*none\b/.test(narrowCss), 'no element is hidden by the narrow CSS')
+
+// Small-screen render tree: every option keeps label + hint + select, every row
+// keeps its name input, four controls, textarea, preview and character count.
+// Render through a fresh store so this assertion does not depend on prior state.
+const narrowTree = render('narrow-manager', sectionReg.component, { t })
+const nodes = walk(narrowTree)
+const classesOf = (node) => String(node.props?.className ?? '').split(/\s+/)
+const hasClass = (node, cls) => classesOf(node).includes(cls)
+
+const optionBlocks = nodes.filter((n) => hasClass(n, 'dqp-option'))
+assert.equal(optionBlocks.length, 5, 'all five option blocks render on a narrow screen')
+for (const id of ['dqp-placement', 'dqp-click', 'dqp-rowmode', 'dqp-manage', 'dqp-autohide']) {
+  const select = nodes.find((n) => n.type === 'select' && n.props.id === id)
+  assert.ok(select, 'dropdown #' + id + ' is present in the narrow render tree')
+  const block = optionBlocks.find((b) => walk(b).includes(select))
+  assert.ok(block, 'dropdown #' + id + ' sits inside an option block')
+  assert.ok(
+    walk(block).some((n) => hasClass(n, 'dqp-option-label') && n.props.htmlFor === id),
+    'dropdown #' + id + ' keeps its label',
+  )
+  assert.ok(
+    walk(block).some((n) => hasClass(n, 'dqp-option-hint') && textOf(n).length > 0),
+    'dropdown #' + id + ' keeps its full explanation text',
+  )
+  assert.ok(walk(block).some((n) => hasClass(n, 'dqp-select-wrap')), 'dropdown #' + id + ' keeps its control wrapper')
+}
+
+const narrowRows = rowsOf(narrowTree)
+assert.ok(narrowRows.length >= 2, 'phrase cards render on a narrow screen')
+for (const [i, row] of narrowRows.entries()) {
+  const rowNodes = walk(row)
+  assert.ok(
+    rowNodes.some((n) => n.type === 'input' && hasClass(n, 'dqp-label-input')),
+    'narrow phrase card ' + i + ' keeps its name input',
+  )
+  for (const cls of ['dqp-eye', 'dqp-icon']) {
+    assert.ok(
+      rowNodes.filter((n) => n.type === 'button' && hasClass(n, cls)).length >= 1,
+      'narrow phrase card ' + i + ' keeps its visibility toggle / move / delete buttons (' + cls + ')',
+    )
+  }
+  // Four actions: eye, up, down, delete (the danger class marks delete).
+  assert.equal(
+    rowNodes.filter((n) => n.type === 'button' && hasClass(n, 'dqp-icon')).length,
+    4,
+    'narrow phrase card ' + i + ' keeps all four action buttons',
+  )
+  assert.equal(
+    rowNodes.filter((n) => n.type === 'button' && hasClass(n, 'dqp-icon-danger')).length,
+    1,
+    'narrow phrase card ' + i + ' keeps the delete button',
+  )
+  assert.ok(
+    rowNodes.some((n) => n.type === 'textarea' && hasClass(n, 'dqp-textarea')),
+    'narrow phrase card ' + i + ' keeps its textarea',
+  )
+  assert.ok(
+    rowNodes.some((n) => hasClass(n, 'dqp-preview')),
+    'narrow phrase card ' + i + ' keeps its preview',
+  )
+  assert.ok(
+    textOf(row).includes(t('manager.chars').replace('{n}', String(stored()[i].text.length))),
+    'narrow phrase card ' + i + ' keeps its character count',
+  )
+}
+
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-badge') && textOf(n).includes(String(narrowRows.length))),
+  'the header count badge is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-section-title') && textOf(n) === t('manager.phrases')),
+  'the section title is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'button' && textOf(n).trim() === t('manager.reset')),
+  'the restore-defaults button is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'button' && textOf(n).trim() === '+ ' + t('manager.add')),
+  'the add-phrase button is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-foot') && textOf(n).includes(t('manager.savedHint')) && textOf(n).includes(t('manager.tip'))),
+  'the full saved/tip footer is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-star') && textOf(n).includes(t('manager.starHint'))),
+  'the star hint is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'a' && hasClass(n, 'dqp-star-link') && textOf(n).includes(t('manager.starLink'))),
+  'the star link is present on a narrow screen',
+)
+
+console.log('PASS — click-to-send, dock chips, width-fit shedding, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — narrow-screen manager keeps every dropdown, label, hint, phrase control, preview, count, footer and star link, with a matching @media (max-width:560px) rule set')

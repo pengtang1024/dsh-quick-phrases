@@ -1,5 +1,14 @@
 # Security Policy
 
+## Table of contents
+
+- [Supported versions](#supported-versions)
+- [Private reporting](#private-reporting)
+- [Response timeline](#response-timeline)
+- [Scope](#scope)
+- [Security design notes](#security-design-notes)
+- [Known boundaries](#known-boundaries)
+
 ## Supported versions
 
 | Version | Receives security fixes |
@@ -13,7 +22,9 @@ Only the three most recent minor lines (`0.7.x`, `0.6.x`, `0.5.x`) are maintaine
 
 ## Private reporting
 
-**Do not open a public issue, PR or discussion for a security vulnerability**, and do not post exploitable details in public channels. Use either of these private routes:
+> **Do not open a public issue, PR or discussion for a security vulnerability**, and do not post exploitable details in public channels.
+
+Use either of these private routes:
 
 1. GitHub Security Advisories (preferred): <https://github.com/pengtang1024/dsh-quick-phrases/security/advisories/new>
 2. Email: <pengtang1024@qq.com>, preferably with `[SECURITY]` in the subject line.
@@ -40,7 +51,9 @@ This repository is responsible for security issues in **the plugin itself**:
 - The navigation (`openSection`) from a phrase row's "Manage" button to the settings page;
 - The bundled Host stub `index.js` and the bundle descriptor file.
 
-**Out of scope for this repository**: DSH itself, the plugin loader, the renderer sandbox, web services, host built-in components, etc. Please route such issues through the official DeepSeek Harness channels:
+> **Out of scope for this repository**: DSH itself, the plugin loader, the renderer sandbox, web services, host built-in components, etc.
+
+Please route such issues through the official DeepSeek Harness channels:
 
 - <https://github.com/deepseek-ai/deepseek-harness/security>
 - Or any other security reporting entry published by that repository / official site.
@@ -57,6 +70,8 @@ The plugin has no npm runtime dependencies; the test and preview scripts use onl
 
 ## Known boundaries
 
-- `localStorage` is plaintext local storage. Any code able to run scripts on the same origin can read these phrases; **do not put passwords, tokens or other secrets into phrases**.
+- `localStorage` is plaintext local storage. Any code able to run scripts on the same origin can read these phrases.
+
+  > **Do not put passwords, tokens or other secrets into phrases**.
 - The plugin is installed as a local-directory bundle, and installation loads `client.js`. Install only from this repository or a source you trust; do not install modified packages of unknown origin.
 - The plugin's capabilities are bounded by DSH's slots: it can read and write the current session's draft, trigger sending, and navigate to its own settings section, but it does not bypass the host's permissions and approval mechanisms.

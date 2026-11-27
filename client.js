@@ -1001,6 +1001,114 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Width fitting: shed the least important chips first. Driven by the
+     * row's real content width (ResizeObserver), never by a fixed px
+     * breakpoint, so short and long captions both degrade correctly.
+     * ------------------------------------------------------------------ */
+
+    var CHIP_GAP = 6
+
+    function finitePx(value) {
+      return typeof value === 'number' && isFinite(value) ? value : null
+    }
+
+    function widthOf(value) {
+      var px = finitePx(value)
+      return px === null || px < 0 ? 0 : px
+    }
+
+    /**
+     * Pure, DOM-free fitter. Return the chips that survive at `available` px.
+     * Priority: collapse (least important) -> manage -> phrase chips from the
+     * end. The first usable phrase chip is never dropped; with no phrase at
+     * all both trailing controls stay reachable.
+     *
+     * options: { phraseWidths, collapseWidth, manageWidth, manage, gap }
+     * returns: { phraseCount, collapse, manage }
+     */
+    function fitRowToWidth(available, options) {
+      var opts = options && typeof options === 'object' ? options : {}
+      var widths = Array.isArray(opts.phraseWidths) ? opts.phraseWidths : []
+      var gap = widthOf(opts.gap)
+      if (gap === 0) gap = CHIP_GAP
+      var collapseWidth = widthOf(opts.collapseWidth)
+      var manageWidth = widthOf(opts.manageWidth)
+      var manage = opts.manage !== false
+      var plan = { phraseCount: widths.length, collapse: true, manage: manage }
+      var px = finitePx(available)
+
+      if (px === null || px <= 0 || widths.length === 0) return plan
+
+      function used(candidate) {
+        var total = 0
+        var count = 0
+        for (var i = 0; i < candidate.phraseCount; i += 1) {
+          total += widthOf(widths[i])
+          count += 1
+        }
+        if (candidate.collapse) { total += collapseWidth; count += 1 }
+        if (candidate.manage) { total += manageWidth; count += 1 }
+        if (count > 1) total += gap * (count - 1)
+        return total
+      }
+
+      while (used(plan) > px) {
+        if (plan.collapse) plan.collapse = false
+        else if (plan.manage) plan.manage = false
+        else if (plan.phraseCount > 1) plan.phraseCount -= 1
+        else break
+      }
+      return plan
+    }
+
+    /**
+     * Test seam: the smoke-test sandbox has no DOM / ResizeObserver, so it can
+     * pin the available width and the per-chip measured widths here. It is
+     * inert until a test explicitly opts in (any setter flips `enabled`), so a
+     * production render never consults a stale global left by another session.
+     * `reset()` turns it off again and restores real DOM measurement.
+     */
+    var widthFitProbe = {
+      enabled: false,
+      available: null,
+      phrases: null,
+      collapseWidth: null,
+      manageWidth: null,
+    }
+
+    function probeIsActive() {
+      return widthFitProbe.enabled === true
+    }
+
+    window.__DQP_WIDTH_FIT__ = {
+      fit: fitRowToWidth,
+      // Explicit opt-in helpers; the setters below also opt in so existing
+      // probe-driven tests keep working without a separate enable() call.
+      enable: function () { widthFitProbe.enabled = true },
+      disable: function () { widthFitProbe.enabled = false },
+      setAvailableWidth: function (value) {
+        widthFitProbe.enabled = true
+        widthFitProbe.available = finitePx(value)
+      },
+      setChipWidths: function (widths) {
+        widthFitProbe.enabled = true
+        widthFitProbe.phrases = Array.isArray(widths) ? widths.slice() : null
+      },
+      setTrailingWidths: function (collapse, manage) {
+        widthFitProbe.enabled = true
+        widthFitProbe.collapseWidth = finitePx(collapse)
+        widthFitProbe.manageWidth = finitePx(manage)
+      },
+      reset: function () {
+        widthFitProbe.enabled = false
+        widthFitProbe.available = null
+        widthFitProbe.phrases = null
+        widthFitProbe.collapseWidth = null
+        widthFitProbe.manageWidth = null
+      },
+    }
+
+    /* ------------------------------------------------------------------ *
      * Styles: local to each component, removed on unmount.
      * ------------------------------------------------------------------ */
 
@@ -1204,23 +1312,48 @@ window.__ModuleLoader__.load({
       'transition:border-color .14s ease,box-shadow .14s ease}' +
       '.dqp-input::placeholder{color:var(--dsw-alias-label-caption,#7d7d7d)}' +
       '.dqp-input:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#4c6fff);box-shadow:0 0 0 2px rgba(0,0,0,.12)}' +
-      /* Narrow viewports: stack option label above its control and let phrase
-         rows breathe; never introduce horizontal overflow. */
+      /* Narrow viewports. Nothing is shed: every picker keeps its label, its
+         full explanation and its control. The picker sits beside the label in
+         one row (long labels simply wrap), with the complete explanation kept
+         below it — five options cost five compact blocks, not ten.
+         Phrase cards give the name field its own line, lift every control to a
+         36px touch target, and wrap the preview instead of ellipsing it. */
       '@media (max-width:560px){' +
-      '.dqp-page{padding:14px 14px 20px}' +
-      '.dqp-inner{gap:14px}' +
-      '.dqp-head{padding-left:10px}' +
+      '.dqp-page{padding:12px 12px 18px}' +
+      '.dqp-inner{gap:12px}' +
+      '.dqp-head{flex-wrap:wrap;gap:8px;padding-left:10px}' +
       '.dqp-title{font-size:17px;line-height:24px}' +
-      '.dqp-option{align-items:stretch;flex-direction:column;gap:2px;padding:7px 12px;min-height:0}' +
-      '.dqp-select-wrap{width:100%}' +
-      '.dqp-select{width:100%;min-width:0}' +
-      '.dqp-btn{height:28px}' +
-      '.dqp-row{gap:6px;padding:6px 10px 6px 2px;flex-wrap:nowrap;align-items:flex-start}' +
-      '.dqp-row-head{flex-wrap:wrap}' +
-      '.dqp-label-input{flex:1 1 90px;min-width:0}' +
-      '.dqp-row-actions{flex:0 0 auto;margin-left:auto;gap:0}' +
-      '.dqp-icon{width:28px;height:28px}' +
-      '.dqp-preview{max-width:170px}' +
+      '.dqp-desc{overflow-wrap:anywhere}' +
+      '.dqp-options{border-radius:8px}' +
+      '.dqp-option{display:flex;flex-direction:row;align-items:flex-start;gap:8px;' +
+      'padding:7px 12px;min-height:0}' +
+      '.dqp-option-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:row;' +
+      'align-items:center;flex-wrap:wrap;gap:2px 8px}' +
+      '.dqp-option-label,.dqp-option-label-row{min-width:0;overflow-wrap:anywhere}' +
+      '.dqp-option-hint{flex:1 1 100%;width:100%;min-width:0;line-height:15px;overflow-wrap:anywhere}' +
+      '.dqp-select-wrap{flex:0 0 44%;width:44%;min-width:0}' +
+      '.dqp-select{width:100%;min-width:0;height:36px;font-size:13px}' +
+      '.dqp-btn{height:auto;min-height:36px;padding:6px 12px;line-height:16px}' +
+      '.dqp-section-head{gap:6px 8px}' +
+      '.dqp-section-title{flex:1 1 100%;min-width:0}' +
+      '.dqp-section-head .dqp-btn{flex:1 1 auto;min-width:0}' +
+      '.dqp-list{gap:8px}' +
+      '.dqp-row{gap:6px;padding:8px 10px 8px 2px;flex-wrap:nowrap;align-items:flex-start}' +
+      '.dqp-grip{flex:0 0 28px;width:28px;height:36px}' +
+      '.dqp-row-head{flex-wrap:wrap;gap:6px}' +
+      '.dqp-label-input{flex:1 1 100%;min-width:0;height:34px;font-size:14px}' +
+      '.dqp-row-actions{margin-left:auto;gap:4px;flex-wrap:wrap;justify-content:flex-end}' +
+      '.dqp-icon{width:36px;height:36px}' +
+      '.dqp-icon-confirm{width:auto;min-width:36px;padding:0 10px}' +
+      '.dqp-textarea{min-height:52px;padding:7px 10px;font-size:13px;line-height:19px}' +
+      '.dqp-row-meta{align-items:flex-start;gap:6px;line-height:16px}' +
+      '.dqp-preview{display:block;flex:1 1 auto;min-width:0;max-width:none;height:auto;' +
+      'min-height:22px;padding:2px 8px;overflow:visible;text-overflow:clip;' +
+      'white-space:normal;overflow-wrap:anywhere}' +
+      '.dqp-meta-grow{flex:1 1 4px;min-width:4px}' +
+      '.dqp-row-meta>span:last-child{flex:0 0 auto;white-space:nowrap}' +
+      '.dqp-foot,.dqp-star{line-height:17px;overflow-wrap:anywhere}' +
+      '.dqp-star-link{min-height:36px;padding:6px 10px}' +
       '}'
 
     /* ------------------------------------------------------------------ *
@@ -1310,6 +1443,12 @@ window.__ModuleLoader__.load({
         var showHint = React.useState(false)
         var setShowHint = showHint[1]
         var hintTimer = React.useRef(null)
+        // Width fitting state. These hooks are unconditional so the hook count
+        // never changes with the placement, folded state, or fitted chip count.
+        var widthTickState = React.useState(0)
+        var bumpWidth = widthTickState[1]
+        var rowRef = React.useRef(null)
+        var metricsRef = React.useRef({ available: null, phrases: {} })
         var hasDraft = draft.trim() !== '' || attachments > 0
         var folded = collapsed || (autoHide === 'fold' && hasDraft && !peeked)
         var usable = phrases.filter(function (phrase) {
@@ -1327,6 +1466,106 @@ window.__ModuleLoader__.load({
             if (hintTimer.current !== null) window.clearTimeout(hintTimer.current)
           }
         }, [])
+
+        // Re-measure on every render so changes in caption/phrase list update
+        // the fit. ResizeObserver adds a nudge when the container changes without
+        // a React update. A first paint often reports clientWidth === 0 before
+        // layout settles, so also schedule bounded deferred re-measures: a
+        // static session must still descend from the full row even when no
+        // ResizeObserver exists and no further React render happens.
+        React.useEffect(function () {
+          function measure() {
+            var node = rowRef.current
+            if (node === null || node === undefined) return
+            var available = finitePx(node.clientWidth)
+            if (available === null) return
+            // Shed chips must keep their cached widths; otherwise dropping one
+            // would free an estimated 0px next render and make the row oscillate.
+            // Cache is keyed by phrase.id, never by DOM index: a shed chip leaves
+            // a hole in node.children, and the folded pill / trailing controls
+            // must never be mistaken for a phrase.
+            var phrases = {}
+            for (var key in metricsRef.current.phrases) {
+              if (Object.prototype.hasOwnProperty.call(metricsRef.current.phrases, key)) {
+                phrases[key] = metricsRef.current.phrases[key]
+              }
+            }
+            var collapseWidth = metricsRef.current.collapseWidth
+            var manageWidth = metricsRef.current.manageWidth
+            for (var i = 0; i < node.children.length; i += 1) {
+              var child = node.children[i]
+              if (child === null || child === undefined || typeof child.className !== 'string') continue
+              var value = finitePx(child.getBoundingClientRect ? child.getBoundingClientRect().width : child.offsetWidth)
+              if (value === null) continue
+              var cls = child.className
+              if (cls.indexOf('dqp-chip-collapse') >= 0) { collapseWidth = value; continue }
+              if (cls.indexOf('dqp-chip-manage') >= 0) { manageWidth = value; continue }
+              if (cls.indexOf('dqp-pill') >= 0 || cls.indexOf('dqp-chip') < 0) continue
+              var phraseId = typeof child.getAttribute === 'function'
+                ? child.getAttribute('data-dqp-phrase-id')
+                : null
+              if (phraseId === null || phraseId === undefined || phraseId === '') continue
+              phrases[phraseId] = value
+            }
+            var prev = metricsRef.current
+            var changed = prev.available !== available || prev.collapseWidth !== collapseWidth ||
+              prev.manageWidth !== manageWidth
+            if (!changed) {
+              for (var nextKey in phrases) {
+                if (Object.prototype.hasOwnProperty.call(phrases, nextKey) && prev.phrases[nextKey] !== phrases[nextKey]) {
+                  changed = true
+                  break
+                }
+              }
+            }
+            if (changed) {
+              metricsRef.current = { available: available, phrases: phrases, collapseWidth: collapseWidth, manageWidth: manageWidth }
+              bumpWidth(function (value) { return value + 1 })
+            }
+          }
+          measure()
+          var node = rowRef.current
+          if (node === null || node === undefined) return undefined
+
+          var disposed = false
+          var deferredId = null
+          var hasRaf = typeof window.requestAnimationFrame === 'function'
+          function later() {
+            if (disposed) return
+            deferredId = null
+            measure()
+            scheduleDeferred()
+          }
+          function scheduleDeferred() {
+            if (disposed || deferredId !== null) return
+            // Only retry while the width is still unusable; a real width means
+            // the synchronous measure already did its job. Bound the chain so a
+            // permanently hidden/zero-width row cannot spin rAF forever.
+            var width = finitePx(node.clientWidth)
+            if (width !== null && width > 0) return
+            if (deferredCount >= 3) return
+            deferredCount += 1
+            deferredId = hasRaf
+              ? window.requestAnimationFrame(later)
+              : window.setTimeout(later, 0)
+          }
+          var deferredCount = 0
+          scheduleDeferred()
+
+          var observer = null
+          if (typeof window.ResizeObserver === 'function') {
+            observer = new window.ResizeObserver(measure)
+            observer.observe(node)
+          }
+          return function () {
+            disposed = true
+            if (deferredId !== null) {
+              if (hasRaf && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(deferredId)
+              else window.clearTimeout(deferredId)
+            }
+            if (observer !== null) observer.disconnect()
+          }
+        })
 
         if (current !== spec.value) return null
 
@@ -1389,6 +1628,43 @@ window.__ModuleLoader__.load({
         if (spec.compact) rowClass += ' dqp-dock-tool'
         if (spec.inset) rowClass += ' dqp-dock-inset'
 
+        // Available width comes from the real DOM measurement. The test probe is
+        // only consulted when a test has explicitly enabled it, so a stale
+        // global cannot change a production render in another session. Without
+        // either measurement we render the full row — safe degradation.
+        var probeActive = probeIsActive()
+        var available = probeActive && widthFitProbe.available !== null
+          ? widthFitProbe.available
+          : finitePx(metricsRef.current.available)
+        // Probe widths are an array indexed by usable position (test contract);
+        // the DOM cache is keyed by phrase.id so shedding cannot shift indices.
+        var measured = probeActive ? widthFitProbe.phrases : null
+        var phraseWidths = usable.map(function (phrase, index) {
+          if (measured !== null && finitePx(measured[index]) !== null) return widthOf(measured[index])
+          var fromDom = finitePx(metricsRef.current.phrases[phrase.id])
+          if (fromDom !== null) return widthOf(fromDom)
+          var caption = phraseCaption(phrase)
+          var units = 0
+          for (var ci = 0; ci < caption.length; ci += 1) {
+            units += caption.charCodeAt(ci) > 255 ? 12 : 7
+          }
+          return Math.min(spec.compact ? 130 : 200, units + (spec.compact ? 22 : 26))
+        })
+        var collapseWidth = probeActive && widthFitProbe.collapseWidth !== null
+          ? widthFitProbe.collapseWidth
+          : widthOf(metricsRef.current.collapseWidth) || 24
+        var manageWidth = probeActive && widthFitProbe.manageWidth !== null
+          ? widthFitProbe.manageWidth
+          : widthOf(metricsRef.current.manageWidth) || 24
+        var plan = fitRowToWidth(available, {
+          phraseWidths: phraseWidths,
+          collapseWidth: collapseWidth,
+          manageWidth: manageWidth,
+          manage: manageEntry !== 'hidden',
+          gap: CHIP_GAP,
+        })
+        var visiblePhrases = usable.slice(0, plan.phraseCount)
+
         var children = [h('style', { key: 'style' }, DOCK_CSS)]
         if (folded) {
           // One pill keeps the caret-insertion path reachable: opening it is a
@@ -1408,18 +1684,19 @@ window.__ModuleLoader__.load({
             }, dockIcon('expand')),
           ))
         } else {
-          children.push(h('div', { key: 'row', className: rowClass },
-            usable.map(function (phrase, index) {
+          children.push(h('div', { key: 'row', ref: rowRef, className: rowClass },
+            visiblePhrases.map(function (phrase, index) {
               return h('button', {
                 key: phrase.id + ':' + index,
                 type: 'button',
                 className: 'dqp-chip',
+                'data-dqp-phrase-id': phrase.id,
                 title: phrase.text,
                 'aria-label': phraseCaption(phrase) + ' — ' + t('dock.tooltip'),
                 onClick: function () { activate(phrase) },
               }, phraseCaption(phrase))
             }),
-            h('button', {
+            plan.collapse ? h('button', {
               key: 'collapse',
               type: 'button',
               className: 'dqp-chip dqp-chip-icon dqp-chip-collapse',
@@ -1430,15 +1707,15 @@ window.__ModuleLoader__.load({
                 setPeeked(false)
                 setCollapsed(true)
               },
-            }, dockIcon('collapse')),
-            manageEntry === 'hidden' ? null : h('button', {
+            }, dockIcon('collapse')) : null,
+            plan.manage && manageEntry !== 'hidden' ? h('button', {
               key: 'manage',
               type: 'button',
               className: 'dqp-chip dqp-chip-manage dqp-chip-icon' + (manageEntry === 'text' ? ' dqp-chip-manage-icon' : ''),
               title: t('dock.manage'),
               'aria-label': t('dock.manage'),
               onClick: handleManage,
-            }, dockIcon('manage')),
+            }, dockIcon('manage')) : null,
           ))
         }
         if (showHint[0]) {

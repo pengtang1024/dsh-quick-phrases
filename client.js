@@ -1295,23 +1295,48 @@ window.__ModuleLoader__.load({
       'transition:border-color .14s ease,box-shadow .14s ease}' +
       '.dqp-input::placeholder{color:var(--dsw-alias-label-caption,#7d7d7d)}' +
       '.dqp-input:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#4c6fff);box-shadow:0 0 0 2px rgba(0,0,0,.12)}' +
-      /* Narrow viewports: stack option label above its control and let phrase
-         rows breathe; never introduce horizontal overflow. */
+      /* Narrow viewports. Nothing is shed: every picker keeps its label, its
+         full explanation and its control. The picker sits beside the label in
+         one row (long labels simply wrap), with the complete explanation kept
+         below it — five options cost five compact blocks, not ten.
+         Phrase cards give the name field its own line, lift every control to a
+         36px touch target, and wrap the preview instead of ellipsing it. */
       '@media (max-width:560px){' +
-      '.dqp-page{padding:14px 14px 20px}' +
-      '.dqp-inner{gap:14px}' +
-      '.dqp-head{padding-left:10px}' +
+      '.dqp-page{padding:12px 12px 18px}' +
+      '.dqp-inner{gap:12px}' +
+      '.dqp-head{flex-wrap:wrap;gap:8px;padding-left:10px}' +
       '.dqp-title{font-size:17px;line-height:24px}' +
-      '.dqp-option{align-items:stretch;flex-direction:column;gap:2px;padding:7px 12px;min-height:0}' +
-      '.dqp-select-wrap{width:100%}' +
-      '.dqp-select{width:100%;min-width:0}' +
-      '.dqp-btn{height:28px}' +
-      '.dqp-row{gap:6px;padding:6px 10px 6px 2px;flex-wrap:nowrap;align-items:flex-start}' +
-      '.dqp-row-head{flex-wrap:wrap}' +
-      '.dqp-label-input{flex:1 1 90px;min-width:0}' +
-      '.dqp-row-actions{flex:0 0 auto;margin-left:auto;gap:0}' +
-      '.dqp-icon{width:28px;height:28px}' +
-      '.dqp-preview{max-width:170px}' +
+      '.dqp-desc{overflow-wrap:anywhere}' +
+      '.dqp-options{border-radius:8px}' +
+      '.dqp-option{display:flex;flex-direction:row;align-items:flex-start;gap:8px;' +
+      'padding:7px 12px;min-height:0}' +
+      '.dqp-option-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:row;' +
+      'align-items:center;flex-wrap:wrap;gap:2px 8px}' +
+      '.dqp-option-label,.dqp-option-label-row{min-width:0;overflow-wrap:anywhere}' +
+      '.dqp-option-hint{flex:1 1 100%;width:100%;min-width:0;line-height:15px;overflow-wrap:anywhere}' +
+      '.dqp-select-wrap{flex:0 0 44%;width:44%;min-width:0}' +
+      '.dqp-select{width:100%;min-width:0;height:36px;font-size:13px}' +
+      '.dqp-btn{height:auto;min-height:36px;padding:6px 12px;line-height:16px}' +
+      '.dqp-section-head{gap:6px 8px}' +
+      '.dqp-section-title{flex:1 1 100%;min-width:0}' +
+      '.dqp-section-head .dqp-btn{flex:1 1 auto;min-width:0}' +
+      '.dqp-list{gap:8px}' +
+      '.dqp-row{gap:6px;padding:8px 10px 8px 2px;flex-wrap:nowrap;align-items:flex-start}' +
+      '.dqp-grip{flex:0 0 28px;width:28px;height:36px}' +
+      '.dqp-row-head{flex-wrap:wrap;gap:6px}' +
+      '.dqp-label-input{flex:1 1 100%;min-width:0;height:34px;font-size:14px}' +
+      '.dqp-row-actions{margin-left:auto;gap:4px;flex-wrap:wrap;justify-content:flex-end}' +
+      '.dqp-icon{width:36px;height:36px}' +
+      '.dqp-icon-confirm{width:auto;min-width:36px;padding:0 10px}' +
+      '.dqp-textarea{min-height:52px;padding:7px 10px;font-size:13px;line-height:19px}' +
+      '.dqp-row-meta{align-items:flex-start;gap:6px;line-height:16px}' +
+      '.dqp-preview{display:block;flex:1 1 auto;min-width:0;max-width:none;height:auto;' +
+      'min-height:22px;padding:2px 8px;overflow:visible;text-overflow:clip;' +
+      'white-space:normal;overflow-wrap:anywhere}' +
+      '.dqp-meta-grow{flex:1 1 4px;min-width:4px}' +
+      '.dqp-row-meta>span:last-child{flex:0 0 auto;white-space:nowrap}' +
+      '.dqp-foot,.dqp-star{line-height:17px;overflow-wrap:anywhere}' +
+      '.dqp-star-link{min-height:36px;padding:6px 10px}' +
       '}'
 
     /* ------------------------------------------------------------------ *

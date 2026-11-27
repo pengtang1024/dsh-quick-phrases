@@ -812,4 +812,141 @@ assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 3, 'dock renders without a
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
+/* ---------------- narrow screens: nothing is shed from the manager ----------------
+ * The fake React sandbox cannot apply CSS media queries, so completeness is
+ * checked on the render tree (which is what the narrow CSS styles) and the
+ * @media (max-width:560px) block is checked to keep every class rule that
+ * lays those elements out. Key selectors only — no brittle whole-block string. */
+
+const cssStyleNodes = (tree) => walk(tree).filter((n) => n.type === 'style')
+const style = cssStyleNodes(render('manager-css', sectionReg.component, { t }))[0]
+assert.ok(style, 'the manager embeds its own stylesheet')
+const managerCss = String(style.children.join(''))
+const mediaStart = managerCss.indexOf('@media (max-width:560px)')
+assert.ok(mediaStart >= 0, 'the manager CSS has a 560px narrow-screen media query')
+// Take the text from @media to the stylesheet end: the narrow block is last.
+const narrowCss = managerCss.slice(mediaStart)
+const cssHas = (fragment, why) =>
+  assert.ok(narrowCss.includes(fragment), 'narrow CSS keeps ' + why)
+for (const [fragment, why] of [
+  ['.dqp-page{padding:', 'the tightened page padding'],
+  ['.dqp-head{flex-wrap:wrap', 'the wrapping masthead'],
+  ['.dqp-desc{overflow-wrap:anywhere}', 'the wrapping description'],
+  ['.dqp-option{display:flex;flex-direction:row', 'the label + dropdown single row'],
+  ['.dqp-option-hint{flex:1 1 100%', 'the full explanation on its own line'],
+  ['.dqp-select-wrap{flex:0 0 44%', 'the 44%-wide dropdown'],
+  ['.dqp-select{width:100%;min-width:0;height:36px', 'the 36px dropdown'],
+  ['.dqp-btn{height:auto;min-height:36px', 'the 36px section buttons'],
+  ['.dqp-section-title{flex:1 1 100%', 'the full-width section title'],
+  ['.dqp-section-head .dqp-btn{flex:1 1 auto', 'the two buttons sharing a row'],
+  ['.dqp-row-head{flex-wrap:wrap', 'the wrapping phrase card head'],
+  ['.dqp-label-input{flex:1 1 100%', 'the full-width name input'],
+  ['.dqp-row-actions{margin-left:auto', 'the action row'],
+  ['.dqp-icon{width:36px;height:36px}', 'the 36px touch targets'],
+  ['.dqp-icon-confirm{width:auto;min-width:36px', 'the 36px confirm target'],
+  ['.dqp-textarea{min-height:52px', 'the taller textarea'],
+  ['.dqp-preview{display:block', 'the wrapping preview'],
+  ['white-space:normal;overflow-wrap:anywhere}', 'the unwrapped preview text'],
+  ['.dqp-foot,.dqp-star{line-height:17px;overflow-wrap:anywhere}', 'the wrapping footer and star line'],
+  ['.dqp-star-link{min-height:36px', 'the 36px star link'],
+]) {
+  cssHas(fragment, why)
+}
+assert.ok(!/\bdisplay\s*:\s*none\b/.test(narrowCss), 'no element is hidden by the narrow CSS')
+
+// Small-screen render tree: every option keeps label + hint + select, every row
+// keeps its name input, four controls, textarea, preview and character count.
+// Render through a fresh store so this assertion does not depend on prior state.
+const narrowTree = render('narrow-manager', sectionReg.component, { t })
+const nodes = walk(narrowTree)
+const classesOf = (node) => String(node.props?.className ?? '').split(/\s+/)
+const hasClass = (node, cls) => classesOf(node).includes(cls)
+
+const optionBlocks = nodes.filter((n) => hasClass(n, 'dqp-option'))
+assert.equal(optionBlocks.length, 5, 'all five option blocks render on a narrow screen')
+for (const id of ['dqp-placement', 'dqp-click', 'dqp-rowmode', 'dqp-manage', 'dqp-autohide']) {
+  const select = nodes.find((n) => n.type === 'select' && n.props.id === id)
+  assert.ok(select, 'dropdown #' + id + ' is present in the narrow render tree')
+  const block = optionBlocks.find((b) => walk(b).includes(select))
+  assert.ok(block, 'dropdown #' + id + ' sits inside an option block')
+  assert.ok(
+    walk(block).some((n) => hasClass(n, 'dqp-option-label') && n.props.htmlFor === id),
+    'dropdown #' + id + ' keeps its label',
+  )
+  assert.ok(
+    walk(block).some((n) => hasClass(n, 'dqp-option-hint') && textOf(n).length > 0),
+    'dropdown #' + id + ' keeps its full explanation text',
+  )
+  assert.ok(walk(block).some((n) => hasClass(n, 'dqp-select-wrap')), 'dropdown #' + id + ' keeps its control wrapper')
+}
+
+const narrowRows = rowsOf(narrowTree)
+assert.ok(narrowRows.length >= 2, 'phrase cards render on a narrow screen')
+for (const [i, row] of narrowRows.entries()) {
+  const rowNodes = walk(row)
+  assert.ok(
+    rowNodes.some((n) => n.type === 'input' && hasClass(n, 'dqp-label-input')),
+    'narrow phrase card ' + i + ' keeps its name input',
+  )
+  for (const cls of ['dqp-eye', 'dqp-icon']) {
+    assert.ok(
+      rowNodes.filter((n) => n.type === 'button' && hasClass(n, cls)).length >= 1,
+      'narrow phrase card ' + i + ' keeps its visibility toggle / move / delete buttons (' + cls + ')',
+    )
+  }
+  // Four actions: eye, up, down, delete (the danger class marks delete).
+  assert.equal(
+    rowNodes.filter((n) => n.type === 'button' && hasClass(n, 'dqp-icon')).length,
+    4,
+    'narrow phrase card ' + i + ' keeps all four action buttons',
+  )
+  assert.equal(
+    rowNodes.filter((n) => n.type === 'button' && hasClass(n, 'dqp-icon-danger')).length,
+    1,
+    'narrow phrase card ' + i + ' keeps the delete button',
+  )
+  assert.ok(
+    rowNodes.some((n) => n.type === 'textarea' && hasClass(n, 'dqp-textarea')),
+    'narrow phrase card ' + i + ' keeps its textarea',
+  )
+  assert.ok(
+    rowNodes.some((n) => hasClass(n, 'dqp-preview')),
+    'narrow phrase card ' + i + ' keeps its preview',
+  )
+  assert.ok(
+    textOf(row).includes(t('manager.chars').replace('{n}', String(stored()[i].text.length))),
+    'narrow phrase card ' + i + ' keeps its character count',
+  )
+}
+
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-badge') && textOf(n).includes(String(narrowRows.length))),
+  'the header count badge is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-section-title') && textOf(n) === t('manager.phrases')),
+  'the section title is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'button' && textOf(n).trim() === t('manager.reset')),
+  'the restore-defaults button is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'button' && textOf(n).trim() === '+ ' + t('manager.add')),
+  'the add-phrase button is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-foot') && textOf(n).includes(t('manager.savedHint')) && textOf(n).includes(t('manager.tip'))),
+  'the full saved/tip footer is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => hasClass(n, 'dqp-star') && textOf(n).includes(t('manager.starHint'))),
+  'the star hint is present on a narrow screen',
+)
+assert.ok(
+  nodes.some((n) => n.type === 'a' && hasClass(n, 'dqp-star-link') && textOf(n).includes(t('manager.starLink'))),
+  'the star link is present on a narrow screen',
+)
+
 console.log('PASS — click-to-send, dock chips, width-fit shedding, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — narrow-screen manager keeps every dropdown, label, hint, phrase control, preview, count, footer and star link, with a matching @media (max-width:560px) rule set')

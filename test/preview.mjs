@@ -446,6 +446,48 @@ ${tierHtml.join('\n')}
   }
 }
 
+/* Narrow-screen manager preview: the real manager HTML at phone widths (390px and
+   320px), so the compact @media (max-width:560px) layout can be eyeballed —
+   labels beside dropdowns, full explanation lines, 36px controls, wrapped
+   previews, and no horizontal overflow. The --shot sizes below set the device
+   width so the stylesheet's media query actually applies. */
+for (const width of [390, 320]) {
+  for (const dark of [true, false]) {
+    const narrowCss = `
+      html, body { width: 100%; max-width: 100%; box-sizing: border-box; }
+      body { padding: 0; }
+      .viewport { width: 100%; box-sizing: border-box; }
+      .probe { margin: 0; padding: 6px 12px; font: 11px/16px monospace; color: var(--dsw-alias-label-secondary, #b9b9b9); }
+      .overflow-pass { color: #4caf50; }
+      .overflow-fail { color: #e35d5d; font-weight: bold; }
+    `
+    // The inline probe measures real layout width; the screenshot shows the
+    // result next to the page, so a horizontal overflow cannot hide in a PNG.
+    const overflowProbe = `<script>
+      window.addEventListener('load', function () {
+        var root = document.documentElement;
+        var overflow = root.scrollWidth - root.clientWidth;
+        var el = document.getElementById('overflow-result');
+        el.textContent = overflow <= 0 ? '无横向溢出 (scrollWidth=' + root.scrollWidth + ')' :
+          '横向溢出 ' + overflow + 'px (clientWidth=' + root.clientWidth + ', scrollWidth=' + root.scrollWidth + ')';
+        el.className = overflow <= 0 ? 'overflow-pass' : 'overflow-fail';
+      });
+    </script>`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=${width}, initial-scale=1"><style>${themeCss}</style><style>${PAGE_CSS}${narrowCss}</style>${overflowProbe}</head>
+<body${dark ? ' data-ds-dark-theme' : ''}>
+<p class="probe">窄屏预览 · 管理页 ${width}px（${dark ? '深色' : '浅色'}）· 横向检查：<span id="overflow-result">测量中…</span></p>
+<div class="viewport">
+${managerHtml}
+</div></body></html>`
+    const file = '/tmp/dqp-narrow-' + width + '-' + (dark ? 'dark' : 'light') + '.html'
+    fs.writeFileSync(file, html)
+    assert.ok(html.includes('dqp-option-hint'), 'the narrow ' + width + 'px page keeps its option explanations')
+    assert.ok(html.includes('dqp-icon-danger'), 'the narrow ' + width + 'px page keeps the delete controls')
+    assert.ok(html.includes('dqp-star-link'), 'the narrow ' + width + 'px page keeps the star link')
+    console.log('wrote', file, html.length + ' bytes')
+  }
+}
+
 if (process.argv.includes('--shot')) {
   const shots = [
     ['/tmp/dqp-dark.html', '/tmp/dqp-dark.png', '760,1190'],
@@ -458,6 +500,10 @@ if (process.argv.includes('--shot')) {
     ['/tmp/dqp-hidden-light.html', '/tmp/dqp-hidden-light.png', '760,700'],
     ['/tmp/dqp-widthfit-dark.html', '/tmp/dqp-widthfit-dark.png', '420,1180'],
     ['/tmp/dqp-widthfit-light.html', '/tmp/dqp-widthfit-light.png', '420,1180'],
+    ['/tmp/dqp-narrow-390-dark.html', '/tmp/dqp-narrow-390-dark.png', '390,1600'],
+    ['/tmp/dqp-narrow-390-light.html', '/tmp/dqp-narrow-390-light.png', '390,1600'],
+    ['/tmp/dqp-narrow-320-dark.html', '/tmp/dqp-narrow-320-dark.png', '320,1800'],
+    ['/tmp/dqp-narrow-320-light.html', '/tmp/dqp-narrow-320-light.png', '320,1800'],
   ]
   const chromeMissing = !fs.existsSync(CHROME)
   if (chromeMissing) {

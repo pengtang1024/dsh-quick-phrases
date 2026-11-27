@@ -40,6 +40,18 @@ Le menu déroulant **Affichage de la rangée** des paramètres réduit la forme 
 
 Le bouton `收起 ▾` à la fin équivaut à choisir «Replier en pastille». Ce menu déroulant ne stocke aucun état propre : sa valeur est dérivée de `dsh.quick-phrases.hidden.v1` (prioritaire) et de `dsh.quick-phrases.collapsed.v1` ; le changement écrit ces deux clés existantes.
 
+### Suppression automatique sur écran étroit
+
+Quand la fenêtre se rétrécit, la rangée supprime ses contrôles **les uns après les autres selon la largeur réellement disponible**, sans réglage et sans seuil fixe en pixels (le calcul utilise la largeur mesurée : les libellés courts comme longs se dégradent correctement) :
+
+1. d'abord le bouton **收起** (le moins important) ;
+2. puis l'accès **Gérer** ;
+3. puis les phrases **de la dernière vers le début**, en gardant les premières.
+
+À largeur extrême **seule la première phrase utilisable reste** ; la rangée ne se vide jamais et, sans aucune phrase, les accès Replier et Gérer restent disponibles. Élargir la fenêtre ramène les contrôles selon les mêmes règles.
+
+Même si le bouton Replier disparaît sur écran étroit, la rangée peut toujours être repliée : un brouillon la réduit en pastille avec «Replier automatiquement», ou vous pouvez choisir «Replier en pastille» dans le menu «Affichage de la rangée». Si l'accès Gérer disparaît, **Paramètres → Phrases rapides** ouvre toujours le gestionnaire. Les trois états, le repli automatique et le masquage d'une phrase restent inchangés.
+
 Une phrase précise peut être masquée avec l'interrupteur **œil** sur sa carte dans le gestionnaire : son bouton disparaît de la rangée, mais la carte reste dans le gestionnaire marquée «已隐藏» ; recliquez pour la réafficher.
 
 ## Gérer les phrases

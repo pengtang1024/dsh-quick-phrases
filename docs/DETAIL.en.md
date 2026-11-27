@@ -40,6 +40,18 @@ The **Phrase row** dropdown in Settings turns the resting shape into a three-way
 
 The `收起 ▾` chip is equivalent to picking "Fold into a pill". This dropdown stores no state of its own: its value is derived from `dsh.quick-phrases.hidden.v1` (which wins) and `dsh.quick-phrases.collapsed.v1`, and switching composes writes to those two existing keys.
 
+### Automatic shedding on narrow screens
+
+When the window or container gets narrow, the row sheds its controls **one by one by actual available width** — no setting to touch, and no fixed pixel breakpoint (the fit is computed from the real width, so short and long captions both degrade correctly):
+
+1. The **Fold** chip at the end goes first (least important);
+2. then the **Manage** entry;
+3. then phrase chips are dropped **from the end backwards** — earlier phrases stay longest.
+
+At extreme narrowness **only the first usable phrase remains**; the row never empties, and with no phrases at all the fold and manage entries stay reachable. Widen the window and the controls come back under the same rules.
+
+Even when the Fold chip is shed on a narrow screen, the row can still be folded: a draft folds it into a pill under the default "Fold automatically", or you can pick "Fold into a pill" from the "Phrase row" dropdown in Settings. When the Manage entry is shed, Settings → Quick phrases still opens the manager. The three-way dropdown, automatic folding and single-phrase hiding are all unchanged.
+
 A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back.
 
 ## Managing phrases

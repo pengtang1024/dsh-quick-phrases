@@ -40,6 +40,18 @@ O menu suspenso **Exibição da linha de frases** nas configurações resume a f
 
 O botão `收起 ▾` no fim da linha equivale a escolher «Recolher em pílula». Esse menu não armazena estado próprio: seu valor é derivado de `dsh.quick-phrases.hidden.v1` (que tem prioridade) e `dsh.quick-phrases.collapsed.v1`, e a troca grava ambas as chaves existentes.
 
+### Descarte automático em telas estreitas
+
+Ao estreitar a janela, a linha descarta seus controles **um por um conforme a largura realmente disponível**, sem configuração e sem um limite fixo em pixels (o cálculo usa a largura medida, então rótulos curtos e longos degradam corretamente):
+
+1. primeiro o botão **收起** (o menos importante);
+2. depois o acesso **Gerenciar**;
+3. depois as frases **da última para trás**, mantendo as primeiras.
+
+Em largura extrema **apenas a primeira frase utilizável permanece** — a linha nunca fica vazia e, se não houver frases, os acessos recolher e gerenciar continuam disponíveis. Ao alargar a janela, os controles voltam pelas mesmas regras.
+
+Mesmo que o botão recolher desapareça em telas estreitas, a linha ainda pode ser recolhida: um rascunho a reduz à pílula com «Recolher automaticamente», ou você escolhe «Recolher em pílula» no menu «Exibição da linha de frases». Se o acesso de gerenciamento desaparecer, **Configurações → Frases rápidas** continua abrindo o gerenciador. Os três estados, o recolhimento automático e a ocultação de frases não mudam.
+
 Uma frase específica pode ser ocultada pelo interruptor de **olho** em seu cartão no gerenciador: o botão desaparece da linha, mas o cartão permanece no gerenciador marcado como «已隐藏»; clique novamente para restaurá-la.
 
 ## Gerenciar frases

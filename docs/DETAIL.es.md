@@ -40,6 +40,18 @@ El desplegable **Mostrar fila de frases** de los ajustes unifica la forma habitu
 
 El botón `收起 ▾` del final equivale a elegir «Plegar en una píldora». Este desplegable no guarda un estado propio: su valor se deriva de `dsh.quick-phrases.hidden.v1` (que tiene prioridad) y `dsh.quick-phrases.collapsed.v1`, y al cambiarlo se escriben ambas claves existentes.
 
+### Descarte automático en pantallas estrechas
+
+Al estrecharse la ventana, la fila descarta sus controles **uno por uno según el ancho real disponible**, sin ajustes y sin un punto fijo en píxeles (el cálculo usa el ancho medido, así que funciona igual con nombres cortos y largos):
+
+1. primero el botón **收起** (el menos importante);
+2. después el acceso **Gestionar**;
+3. y luego las frases **de la última hacia atrás**, conservando las primeras.
+
+En una extensión extrema **solo queda la primera frase útil**, la fila nunca se vacía y, si no hay frases, los accesos de plegar y gestionar siguen disponibles. Al ensanchar la ventana, los controles vuelven según las mismas reglas.
+
+Aunque el botón de plegar desaparezca en pantallas estrechas, la fila aún se puede plegar: un borrador la reduce a la píldora con «Plegar automáticamente», o puedes elegir «Plegar en una píldora» en el desplegable «Mostrar fila de frases». Si el acceso de gestión desaparece, **Ajustes → Frases rápidas** sigue abriendo el administrador. Los tres estados, el plegado automático y la ocultación de frases no cambian.
+
 Una frase concreta se puede ocultar con el interruptor del **ojo** en su tarjeta del administrador: al ocultarla, su botón deja de aparecer en la fila, pero la tarjeta sigue en el administrador marcada como «已隐藏»; vuelve a hacer clic para mostrarla de nuevo.
 
 ## Gestionar frases

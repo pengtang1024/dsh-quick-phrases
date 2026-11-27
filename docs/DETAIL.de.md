@@ -40,6 +40,18 @@ Der Dropdown **Phrasenzeile anzeigen** in den Einstellungen fasst die dauerhafte
 
 Die Schaltfläche `收起 ▾` am Zeilenende entspricht der Wahl von „Zur Pille einklappen". Dieser Dropdown speichert keinen eigenen Zustand: Sein Wert wird aus `dsh.quick-phrases.hidden.v1` (hat Vorrang) und `dsh.quick-phrases.collapsed.v1` abgeleitet; beim Umschalten werden diese beiden vorhandenen Schlüssel gemeinsam geschrieben.
 
+### Automatisches Ausblenden auf schmalen Bildschirmen
+
+Wird das Fenster schmaler, gibt die Zeile ihre Elemente **nacheinander entsprechend der tatsächlich verfügbaren Breite** auf — ohne Einstellung und ohne festen Pixel-Schwellenwert (die Berechnung nutzt die gemessene Breite, sodass kurze und lange Beschriftungen gleichermaßen korrekt abgestuft werden):
+
+1. zuerst die Schaltfläche **收起** (am wenigsten wichtig);
+2. dann der Zugang **Verwalten**;
+3. dann die Phrasen **von der letzten nach vorn**, die vorderen bleiben am längsten.
+
+Bei extrem geringer Breite **bleibt nur die erste verwendbare Phrase**; die Zeile wird nie leer, und ohne Phrasen bleiben Einklappen- und Verwalten-Zugang erreichbar. Beim Verbreitern des Fensters kommen die Elemente nach denselben Regeln zurück.
+
+Auch wenn die Einklappen-Schaltfläche auf schmalen Bildschirmen entfällt, lässt sich die Zeile weiter einklappen: ein Entwurf faltet sie mit „Automatisch einklappen" zur Pille, oder Sie wählen „Zur Pille einklappen" im Dropdown „Phrasenzeile anzeigen". Entfällt der Verwalten-Zugang, öffnet **Einstellungen → Schnellphrasen** weiterhin den Verwaltungsbereich. Die drei Zustände, das automatische Einklappen und das Verbergen einzelner Phrasen bleiben unverändert.
+
 Eine einzelne Phrase lässt sich im Verwaltungsbereich über den **Augen**-Schalter auf ihrer Karte verbergen: Danach erscheint ihre Schaltfläche nicht mehr in der Zeile, die Karte bleibt im Verwaltungsbereich und ist mit „已隐藏" markiert; ein weiterer Klick stellt sie wieder sichtbar.
 
 ## Phrasen verwalten

@@ -1,5 +1,10 @@
 # 变更记录
 
+## 0.10.2
+
+- 本版内容与 0.10.1 相同：文档排版美化（README 目录与拆段、七语详情统一排版、工程与架构文档目录与引用块），不涉及功能改动、配置或存储键变更，插件行为不变。
+- 因 npm 发布改由 GitHub Actions CI 的 Trusted Publishing（OIDC）独占执行，重发此补丁版本，让 CI 走完整的发布流程并成功一次；本地不进行 publish。
+
 ## 0.10.1
 
 - **文档排版美化（不涉及功能改动）**：README 新增目录、拆段并给代码块标注语言；七语 `docs/DETAIL*.md` 统一排版与结构，存储键示例改用代码块；`CONTRIBUTING.md`、`SECURITY*.md`、`CODE_OF_CONDUCT.md`、`docs/ARCHITECTURE.md`、`docs/images/README.md` 补目录并用引用块突出提示。仅调整排版与可读性，保留全部功能、配置、存储键与版本事实，插件行为不变。

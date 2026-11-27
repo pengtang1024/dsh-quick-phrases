@@ -2,7 +2,11 @@
 
 ## Qué hace
 
-Añade una fila de botones de frase (`继续`, `提交`, `推送`, `发版` …) junto al cuadro de entrada. Al hacer clic en un botón se envía directamente el **texto** de esa frase; el botón muestra solo su **etiqueta**. Ambas cosas se editan por separado, de modo que el botón puede ser corto mientras el mensaje enviado es una frase completa.
+Añade una fila de botones de frase (`继续`, `提交`, `推送`, `发版` …) junto al cuadro de entrada.
+
+- **Etiqueta**: el botón muestra solo el nombre corto de la frase.
+- **Texto**: al hacer clic se envía directamente el texto completo de la frase.
+- Ambas cosas se editan por separado, de modo que el botón puede ser corto mientras el mensaje enviado es una frase completa.
 
 **El comportamiento al hacer clic se puede cambiar** (por defecto: enviar directamente):
 
@@ -28,7 +32,8 @@ Las tres filas se registran, pero solo se renderiza la seleccionada; cambiar de 
 La fila de frases no debe estorbar al escribir, así que se puede plegar temporalmente y su forma habitual es un ajuste:
 
 - **Plegar manualmente**: haz clic en `收起 ▾` al final de la fila y toda la fila se reduce a una pequeña píldora `▸ 快捷短语`; haz clic en la píldora para desplegarla temporalmente y de nuevo en «收起» para plegarla.
-- **Plegar automáticamente** (predeterminado): con «Cuando el cuadro de entrada tiene contenido» ajustado a «Plegar automáticamente», la fila se reduce a la píldora en cuanto hay texto o archivos adjuntos, y se despliega de nuevo al vaciar el borrador. Elige «Mantener visible» para que la fila completa permanezca.
+- **Plegar automáticamente** (predeterminado): con «Cuando el cuadro de entrada tiene contenido» ajustado a «Plegar automáticamente», la fila se reduce a la píldora en cuanto hay texto o archivos adjuntos, y se despliega de nuevo al vaciar el borrador.
+- **Mantener visible**: elige esta opción para que la fila completa permanezca.
 
 Desplegar la píldora y hacer clic en una frase se comporta igual que con la fila abierta: si el cuadro de entrada ya tiene contenido, el texto se inserta en el cursor y no sobrescribe el borrador.
 
@@ -36,13 +41,20 @@ El desplegable **Mostrar fila de frases** de los ajustes unifica la forma habitu
 
 - **Mostrar la fila completa**: la fila permanece visible y el botón «收起» del final sigue plegándola temporalmente;
 - **Plegar en una píldora**: solo queda una pequeña píldora junto al cuadro de entrada; haz clic en ella para desplegar;
-- **Ocultar por completo**: la fila desaparece por completo de la interfaz, **sin dejar siquiera la píldora**; no se muestra nada. Para recuperarla hay que volver a **Ajustes → Frases rápidas** y cambiar el desplegable a una de las dos primeras opciones (al elegir «Ocultar por completo» se indica «整排已隐藏» junto al desplegable). Al volver a «Mostrar la fila completa» se borra además el estado plegado y la fila completa reaparece directamente.
+- **Ocultar por completo**: la fila desaparece por completo de la interfaz, **sin dejar siquiera la píldora**; no se muestra nada.
+  - Para recuperarla hay que volver a **Ajustes → Frases rápidas** y cambiar el desplegable a una de las dos primeras opciones (al elegir «Ocultar por completo» se indica «整排已隐藏» junto al desplegable).
+  - Al volver a «Mostrar la fila completa» se borra además el estado plegado y la fila completa reaparece directamente.
 
 El botón `收起 ▾` del final equivale a elegir «Plegar en una píldora». Este desplegable no guarda un estado propio: su valor se deriva de `dsh.quick-phrases.hidden.v1` (que tiene prioridad) y `dsh.quick-phrases.collapsed.v1`, y al cambiarlo se escriben ambas claves existentes.
 
+> **Consejo**: ambas claves ya existen; cambiar el desplegable solo las reescribe en combinación, sin añadir ninguna clave nueva.
+
 ### Descarte automático en pantallas estrechas
 
-Al estrecharse la ventana, la fila descarta sus controles **uno por uno según el ancho real disponible**, sin ajustes y sin un punto fijo en píxeles (el cálculo usa el ancho medido, así que funciona igual con nombres cortos y largos):
+Al estrecharse la ventana, la fila descarta sus controles **uno por uno según el ancho real disponible**:
+
+- sin ajustes y sin un punto fijo en píxeles;
+- el cálculo usa el ancho medido, así que funciona igual con nombres cortos y largos.
 
 1. primero el botón **收起** (el menos importante);
 2. después el acceso **Gestionar**;
@@ -50,7 +62,12 @@ Al estrecharse la ventana, la fila descarta sus controles **uno por uno según e
 
 En una extensión extrema **solo queda la primera frase útil**, la fila nunca se vacía y, si no hay frases, los accesos de plegar y gestionar siguen disponibles. Al ensanchar la ventana, los controles vuelven según las mismas reglas.
 
-Aunque el botón de plegar desaparezca en pantallas estrechas, la fila aún se puede plegar: un borrador la reduce a la píldora con «Plegar automáticamente», o puedes elegir «Plegar en una píldora» en el desplegable «Mostrar fila de frases». Si el acceso de gestión desaparece, **Ajustes → Frases rápidas** sigue abriendo el administrador. Los tres estados, el plegado automático y la ocultación de frases no cambian.
+Aunque el botón de plegar desaparezca en pantallas estrechas, la fila aún se puede plegar:
+
+- un borrador la reduce a la píldora con «Plegar automáticamente»;
+- o puedes elegir «Plegar en una píldora» en el desplegable «Mostrar fila de frases».
+
+Si el acceso de gestión desaparece, **Ajustes → Frases rápidas** sigue abriendo el administrador. Los tres estados, el plegado automático y la ocultación de frases no cambian.
 
 Una frase concreta se puede ocultar con el interruptor del **ojo** en su tarjeta del administrador: al ocultarla, su botón deja de aparecer en la fila, pero la tarjeta sigue en el administrador marcada como «已隐藏»; vuelve a hacer clic para mostrarla de nuevo.
 
@@ -80,15 +97,33 @@ Abre **Ajustes → Frases rápidas**. La página tiene dos partes: arriba, cinco
 - **✕**: el primer clic solo cambia el botón a «Confirmar»; hay que hacer clic de nuevo en menos de cuatro segundos para borrar de verdad y evitar borrados accidentales.
 - **Añadir frase**: agrega una tarjeta vacía y coloca el cursor en la etiqueta; **Restaurar valores predeterminados** entra en estado de confirmación con un clic y restaura las cuatro frases integradas con el segundo.
 
-Los cambios se guardan y aplican al instante, sin reiniciar. Las frases se guardan en el almacenamiento local del navegador (clave `localStorage` `dsh.quick-phrases.v1`; la posición en `dsh.quick-phrases.placement.v1`, el comportamiento al hacer clic en `dsh.quick-phrases.click.v1`, el estado plegado en `dsh.quick-phrases.collapsed.v1`, la opción de plegado automático en `dsh.quick-phrases.autohide.v1`, el estado de ocultación total en `dsh.quick-phrases.hidden.v1` y el estilo de la entrada de gestión en `dsh.quick-phrases.manage.v1`), con el aislamiento de almacenamiento web de DSH: al cambiar de equipo o borrar los datos del sitio se pierden. El desplegable «Mostrar fila de frases» no ocupa una clave nueva: lee y escribe `hidden.v1` y `collapsed.v1`.
+Los cambios se guardan y aplican al instante, sin reiniciar. Las frases se guardan en el almacenamiento local del navegador (`localStorage`), con el aislamiento de almacenamiento web de DSH: al cambiar de equipo o borrar los datos del sitio se pierden. Cada estado corresponde a una clave:
+
+```text
+dsh.quick-phrases.v1             lista de frases
+dsh.quick-phrases.placement.v1   posición
+dsh.quick-phrases.click.v1       comportamiento al hacer clic
+dsh.quick-phrases.collapsed.v1   estado plegado
+dsh.quick-phrases.autohide.v1    opción de plegado automático
+dsh.quick-phrases.hidden.v1      estado de ocultación total
+dsh.quick-phrases.manage.v1      estilo de la entrada de gestión
+```
+
+El desplegable «Mostrar fila de frases» no ocupa una clave nueva: lee y escribe `hidden.v1` y `collapsed.v1`.
 
 ## Abrirlo desde el cuadro de entrada
 
-El botón **Gestionar** al final de la fila lleva a la misma página de ajustes (si la fila está plegada en una píldora, despliégrala primero). La entrada de gestión se puede cambiar a un icono de engranaje u ocultar en los ajustes; una vez oculta, la fila ya no muestra el botón y **Ajustes → Frases rápidas** es la forma de entrar. Si la interfaz actual aún no ha montado la entrada de ajustes, se muestra «请在『设置 — 快捷短语』中管理».
+El botón **Gestionar** al final de la fila lleva a la misma página de ajustes (si la fila está plegada en una píldora, despliégrala primero).
+
+- La entrada de gestión se puede cambiar a un icono de engranaje u ocultar en los ajustes.
+- Una vez oculta, la fila ya no muestra el botón y **Ajustes → Frases rápidas** es la forma de entrar.
+- Si la interfaz actual aún no ha montado la entrada de ajustes, se muestra «请在『设置 — 快捷短语』中管理».
 
 ## Estilo
 
-Botones, campos y tarjetas usan los tokens semánticos del anfitrión (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) y siguen los temas claro y oscuro de DSH. El color de primer plano del botón principal toma `--dsw-alias-label-primary-foreground`, igual que la variante primary del botón del anfitrión, para garantizar el contraste en ambos temas.
+Botones, campos y tarjetas usan los tokens semánticos del anfitrión (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) y siguen los temas claro y oscuro de DSH.
+
+El color de primer plano del botón principal toma `--dsw-alias-label-primary-foreground`, igual que la variante primary del botón del anfitrión, para garantizar el contraste en ambos temas.
 
 ## Límites
 

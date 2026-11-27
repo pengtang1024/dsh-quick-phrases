@@ -1,6 +1,25 @@
 # 贡献指南
 
-dsh-quick-phrases 是 DeepSeek Harness（DSH）的一个客户端插件：一个纯前端 `client.js` 加一个空的 Host 行，没有构建步骤，也没有 npm 运行时依赖。欢迎 issue、讨论和 PR；改动尽量小，一个 PR 只做一件事。
+dsh-quick-phrases 是 DeepSeek Harness（DSH）的一个客户端插件：一个纯前端 `client.js` 加一个空的 Host 行，没有构建步骤，也没有 npm 运行时依赖。
+
+欢迎 issue、讨论和 PR。
+
+> 改动尽量小，一个 PR 只做一件事。
+
+## 目录
+
+- [环境要求](#环境要求)
+- [本地开发](#本地开发)
+- [测试](#测试)
+- [提交规范](#提交规范)
+- [Git Flow 分支模型](#git-flow-分支模型)
+  - [日常开发（feature / fix）](#日常开发feature--fix)
+  - [发布与修复（release / hotfix）](#发布与修复release--hotfix)
+  - [签名约定](#签名约定)
+- [发布流程](#发布流程)
+- [代码约定](#代码约定)
+- [文档约定](#文档约定)
+- [截图与隐私](#截图与隐私)
 
 ## 环境要求
 
@@ -8,7 +27,7 @@ dsh-quick-phrases 是 DeepSeek Harness（DSH）的一个客户端插件：一个
 - **DSH 桌面端或 Web 端**（0.2.2 及以上）：用于人工验证真实插槽、主题和点按行为。
 - **可选的本地 Chromium**：只有 `test/preview.mjs --shot` 截图时需要，见下文。
 
-不需要 `npm install`，不需要打包器，也不要引入构建步骤。
+> 不需要 `npm install`，不需要打包器，也不要引入构建步骤。
 
 ## 本地开发
 
@@ -22,13 +41,23 @@ cd dsh-quick-phrases
 - **图形界面**：Plugins → Add plugin → 选择本仓库目录。
 - **命令行**：在 DSH 里执行（或让 DSH 里的 agent 执行）
 
-  ```
+  ```text
   plugin_manager install_bundle target=/abs/path/to/dsh-quick-phrases
   ```
 
-改完 `client.js` 后让渲染进程重新加载：**重启 DSH 桌面端**，或在会话页按 `Ctrl+R`。用 `link:` 方式安装时（本机开发就是这样），改文件只需重载页面，不必重装；如果是复制安装，需要在 Plugins 里重新安装或重新加载。
+改完 `client.js` 后让渲染进程重新加载：
 
-调试时优先看三处：浏览器 / 渲染进程的 console（插件用 `[quick-phrases]` 前缀打警告）、`localStorage` 里的三个键、以及 smoke 测试的断言。`client.js` 是直接加载的 IIFE（`window.__ModuleLoader__.load`），不存在热更新或编译产物。
+- **重启 DSH 桌面端**，或在会话页按 `Ctrl+R`。
+- 用 `link:` 方式安装时（本机开发就是这样），改文件只需重载页面，不必重装。
+- 如果是复制安装，需要在 Plugins 里重新安装或重新加载。
+
+调试时优先看三处：
+
+- 浏览器 / 渲染进程的 console（插件用 `[quick-phrases]` 前缀打警告）；
+- `localStorage` 里的三个键；
+- smoke 测试的断言。
+
+`client.js` 是直接加载的 IIFE（`window.__ModuleLoader__.load`），不存在热更新或编译产物。
 
 ## 测试
 
@@ -65,13 +94,13 @@ CI（`.github/workflows/ci.yml`）在 Node 20 上跑 `node --check client.js`、
 
 使用 Conventional Commits，描述用中文：
 
-```
+```text
 type(scope): 中文描述
 ```
 
 `type` 取 `feat` / `fix` / `perf` / `refactor` / `chore` / `docs` / `test`；`scope` 可省略（例如 `manager`、`composer`、`docs`）。例子：
 
-```
+```text
 feat(manager): 支持拖动排序
 fix(composer): 输入框上方时与卡片对齐
 docs: 补充本地开发与测试说明
@@ -95,11 +124,15 @@ docs: 补充本地开发与测试说明
 | `release/*` | `develop` | **`main` 和 `develop`（双向）** | `release/vX.Y.Z`，与 tag 同号 | 发布冻结分支，只接受发布相关改动 |
 | `hotfix/*` | `main` | **`main` 和 `develop`（双向）** | `hotfix/vX.Y.Z` 或 `hotfix/简短描述` | 已发布版本的紧急修复 |
 
-分支名一律小写英文 + 连字符（kebab-case），不用空格、下划线或中文。`release/*` 和 `hotfix/*` **必须双向合流**：只合 `main` 不合 `develop`，下个版本会把已经修好的问题又带回 `main`。合并用 `--no-ff` 保留分支拓扑，合完删除该短生命周期分支。
+分支名一律小写英文 + 连字符（kebab-case），不用空格、下划线或中文。
+
+> `release/*` 和 `hotfix/*` **必须双向合流**：只合 `main` 不合 `develop`，下个版本会把已经修好的问题又带回 `main`。
+
+合并用 `--no-ff` 保留分支拓扑，合完删除该短生命周期分支。
 
 流转示意：
 
-```
+```text
 feature/xxx ──PR──> develop
 fix/xxx     ──PR──> develop
 develop ──> release/vX.Y.Z ──PR──> main     （打 SSH 签名 tag）
@@ -130,7 +163,9 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 
 ### 签名约定
 
-**所有版本 tag 必须 SSH 签名**：本仓库已设 `gpg.format=ssh` 并配好 `user.signingkey`，且本地已开启 `tag.gpgSign=true`，直接 `git tag` 也会签名；但换机器 / 换环境可能没有这项配置，为稳妥起见仍建议显式写 `git tag -s vX.Y.Z -m "发布说明"`，**切勿用 `git tag -a`**（未签名）。可用 `git tag -v vX.Y.Z` 校验签名。
+> **所有版本 tag 必须 SSH 签名**：本仓库已设 `gpg.format=ssh` 并配好 `user.signingkey`，且本地已开启 `tag.gpgSign=true`，直接 `git tag` 也会签名；但换机器 / 换环境可能没有这项配置，为稳妥起见仍建议显式写 `git tag -s vX.Y.Z -m "发布说明"`，**切勿用 `git tag -a`**（未签名）。
+
+可用 `git tag -v vX.Y.Z` 校验签名。
 
 ## 发布流程
 
@@ -189,7 +224,7 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 - **hooks 顺序稳定**：三个位置组件先跑完所有 hook，再判断当前选中的是不是自己；不是就 `return null`，不要提前返回。
 - **存储向后兼容**：改数据结构要升版本键（`…v1` → `…v2`）并写迁移 / 回退，读不出来时用默认值，不要让页面崩掉。
 
-**DoD（完成定义）**：跑过验证再说完成——`node --check` 和 `node test/smoke.mjs` 通过；界面改动在 DSH 里实际看过深 / 浅两套主题；没跑过的内容在 PR 里明确写「未验证」。
+> **DoD（完成定义）**：跑过验证再说完成——`node --check` 和 `node test/smoke.mjs` 通过；界面改动在 DSH 里实际看过深 / 浅两套主题；没跑过的内容在 PR 里明确写「未验证」。
 
 ## 文档约定
 
@@ -210,4 +245,6 @@ main ──> hotfix/vX.Y.Z ──PR──> main          （打 SSH 签名 tag�
 - [ ] 状态行 token 用量、后台任务数、模型名等运行信息已裁掉
 - [ ] 没有内网地址、邮箱、token、密钥、证书
 
-做不到就退回示意图；要真机观感时用干净演示 profile 截，或只裁接口本体。截图属于会进 git 历史与发布说明的东西，删了也还在历史里，宁可花十分钟裁图。
+做不到就退回示意图；要真机观感时用干净演示 profile 截，或只裁接口本体。
+
+> 截图属于会进 git 历史与发布说明的东西，删了也还在历史里，宁可花十分钟裁图。

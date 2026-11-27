@@ -2,6 +2,17 @@
 
 这份文档写给要继续改 `client.js` 的人：它怎么挂进 DSH、数据放在哪、以及哪些约束不能碰。
 
+## 目录
+
+- [插件形态](#插件形态)
+- [客户端入口](#客户端入口)
+- [插槽](#插槽)
+- [数据层](#数据层)
+  - [宽度降级（按实际宽度逐级舍弃）](#宽度降级按实际宽度逐级舍弃)
+- [样式](#样式)
+- [测试](#测试)
+- [兼容性注意](#兼容性注意)
+
 ## 插件形态
 
 DSH 的插件是「bundle」：一个 npm 包 + 一行 Cordis patch。本仓库的 Host 侧是空壳，所有能力都在客户端：
@@ -15,7 +26,9 @@ DSH 的插件是「bundle」：一个 npm 包 + 一行 Cordis patch。本仓库�
 | `icon.svg` | 插件列表图标 |
 | `index.json` | 插件市场索引（format 1），让 Discover 能搜到并安装本插件 |
 
-`package.json` 里声明 `dsh.client.platform = "web"`、`immediately: true`、`inject: ["@deepseek-ai/dsh-client-ui-conversation"]`；`dsh.bundle.patch` 指向 patch 文件。`engines.dsh` 声明兼容的 DSH 版本，市场索引与 `plugin_manager` 用它判断可装性。没有构建步骤，改完 `client.js` 让渲染进程重载即可。
+`package.json` 里声明 `dsh.client.platform = "web"`、`immediately: true`、`inject: ["@deepseek-ai/dsh-client-ui-conversation"]`；`dsh.bundle.patch` 指向 patch 文件。`engines.dsh` 声明兼容的 DSH 版本，市场索引与 `plugin_manager` 用它判断可装性。
+
+> 没有构建步骤，改完 `client.js` 让渲染进程重载即可。
 
 ## 客户端入口
 
@@ -34,7 +47,7 @@ return {
 
 - `require('react')` 取的是 DSH 浏览器端的 React，不需要打包。
 - 所有注册都放进 `apply`，用 `ctx.slots.inject` 等待插槽出现；插槽消失时框架会自动调用注册返回的清理函数。
-- 组件不能往 `document.body` 追加东西，也不能读别的插件的 DOM。
+> 组件不能往 `document.body` 追加东西，也不能读别的插件的 DOM。
 
 ## 插槽
 
@@ -74,7 +87,7 @@ return {
 
 可见性判断也在 `DockChips` 里，顺序固定：先把 hook 全部跑完（数量不随状态变化），再依次判断位置、彻底隐藏、折叠、宽度降级：
 
-```
+```js
 if (current !== spec.value) return null   // 只有选中位置的那一行渲染
 if (hidden) return null                   // 彻底隐藏：什么都不渲染，连胶囊都不留
 hasDraft = draft.trim() !== '' || attachments > 0
@@ -116,11 +129,15 @@ plan     = fitRowToWidth(available, {...}) // 只在未折叠时按可用宽度�
 - 主按钮：`--dsw-alias-button-primary-fill` + `--dsw-alias-label-primary-foreground`（与宿主 `Button` 的 primary 变体一致，深浅主题都对得上）
 - 焦点：`--dsw-focus-ring-width` / `--dsw-focus-ring-color`
 
-不要写死颜色，也不要用 `prefers-color-scheme` 判断主题——DSH 用 `data-ds-dark-theme` 切换，硬编码会两边都对不上。
+> 不要写死颜色，也不要用 `prefers-color-scheme` 判断主题——DSH 用 `data-ds-dark-theme` 切换，硬编码会两边都对不上。
 
 短语行的宽度拟合相关样式：`DOCK_CSS` 里 `.dqp-dock` 用 `display:flex; flex-wrap:wrap; gap:6px; min-width:0`，`.dqp-chip` 是 `flex:0 0 auto` 并带 `max-width`（普通行 200px / 工具行 130px）——胶囊不收缩、超出就换行，实测宽度才稳定可缓存；`CHIP_GAP = 6` 与 CSS 的 `gap:6px` 保持一致，拟合计算才和实际占用对得上。工具行 `.dqp-dock-tool` 另有 `flex-wrap:nowrap; overflow-x:auto`，窄屏在滚动之上仍先按上述顺序舍弃控件。
 
-设置 / 管理页（`MANAGER_CSS`）另有一套小屏排版优化， `@media (max-width:560px)` 段：选项标签与下拉同行（长标签自然换行）、每项说明完整保留在控件下方、所有按钮与图标触控目标 ≥36px、textarea 最小高度 52px、预览改为 `white-space:normal` 可换行不再省略号截断、区块标题与两个按钮平分一行、`.dqp-page` 页边距收紧到 `12px`，所有长文本加 `overflow-wrap:anywhere` 防溢出。**这套规则纯 CSS、只改排版，不删任何 DOM 元素、不改任何状态或功能。** 它与上面的短语行宽度降级是两套独立逻辑：`fitRowToWidth` 按实际宽度逐级舍弃控件（渲染层行为），而管理页小屏优化从不舍弃元素——二者不可混为一谈。
+设置 / 管理页（`MANAGER_CSS`）另有一套小屏排版优化， `@media (max-width:560px)` 段：选项标签与下拉同行（长标签自然换行）、每项说明完整保留在控件下方、所有按钮与图标触控目标 ≥36px、textarea 最小高度 52px、预览改为 `white-space:normal` 可换行不再省略号截断、区块标题与两个按钮平分一行、`.dqp-page` 页边距收紧到 `12px`，所有长文本加 `overflow-wrap:anywhere` 防溢出。
+
+> **这套规则纯 CSS、只改排版，不删任何 DOM 元素、不改任何状态或功能。**
+
+它与上面的短语行宽度降级是两套独立逻辑：`fitRowToWidth` 按实际宽度逐级舍弃控件（渲染层行为），而管理页小屏优化从不舍弃元素——二者不可混为一谈。
 
 「输入框上方」的位置需要复制宿主 dock 的几何，否则会贴在会话栏左缘：
 

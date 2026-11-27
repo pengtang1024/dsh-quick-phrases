@@ -2,7 +2,13 @@
 
 这里的图**全部是界面示意图**，由 `test/preview.mjs` 把插件真实组件渲染成静态 HTML、套上宿主主题 token、再用无头 Chromium 截出来，图内自带「界面示意图」标题。
 
-生成方式：
+## 目录
+
+- [生成方式](#生成方式)
+- [为什么不用真机截图](#为什么不用真机截图)
+- [需要真机图时](#需要真机图时)
+
+## 生成方式
 
 ```bash
 ELECTRON_RUN_AS_NODE=1 "/opt/DSH NEXT/dsh-desktop-next" test/preview.mjs --shot
@@ -23,7 +29,7 @@ ELECTRON_RUN_AS_NODE=1 "/opt/DSH NEXT/dsh-desktop-next" test/preview.mjs --shot
 
 ## 需要真机图时
 
-确实需要真机观感时，按下面任一条做，**不要**直接 `agkit shot` 全窗截图就提交：
+> 确实需要真机观感时，按下面任一条做，**不要**直接 `agkit shot` 全窗截图就提交：
 
 1. 裁剪到只有输入卡片 / 设置面板本体，去掉侧边栏、顶栏、状态行、账号区；
 2. 或者用一份干净的演示 profile（空白工作区、没有真实会话）来截；

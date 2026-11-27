@@ -7,13 +7,30 @@
 
 语言：[简体中文](docs/DETAIL.md) · [English](docs/DETAIL.en.md) · [Español](docs/DETAIL.es.md) · [Français](docs/DETAIL.fr.md) · [Deutsch](docs/DETAIL.de.md) · [Русский](docs/DETAIL.ru.md) · [Português](docs/DETAIL.pt.md)
 
-给 DeepSeek Harness（DSH）的输入框加一排快捷短语按钮：`继续`、`提交`、`推送`、`发版` 这类天天要打的字，点一下就送进输入框或直接发出。按钮上显示的**名称**和真正发出的**内容**分开编辑，所以按钮可以很短，话可以很长。
+给 DeepSeek Harness（DSH）的输入框加一排快捷短语按钮：`继续`、`提交`、`推送`、`发版` 这类天天要打的字，点一下就送进输入框或直接发出。
+
+按钮上显示的**名称**和真正发出的**内容**分开编辑，所以按钮可以很短，话可以很长。
 
 > Composer decoration for DeepSeek Harness: a row of quick-phrase chips whose captions and sent text are edited separately, plus a management page in Settings.
 
 ![短语行](docs/images/row-dark.png)
 
 > 文档里的截图都是**界面示意图**：由 `test/preview.mjs` 把真实组件套上宿主主题 token 渲染出来，不是真机截屏。实际观感以运行中的界面为准。
+
+**目录**
+
+- [功能](#功能)
+- [安装](#安装)
+- [使用](#使用)
+  - [放在哪里](#放在哪里)
+  - [管理页](#管理页)
+  - [收起与隐藏](#收起与隐藏)
+  - [窄屏自动舍弃](#窄屏自动舍弃)
+- [数据与隐私](#数据与隐私)
+- [开发](#开发)
+- [文档](#文档)
+- [许可证](#许可证)
+- [支持本项目](#支持本项目)
 
 ## 功能
 
@@ -29,7 +46,9 @@
 
 ## 安装
 
-前置：DSH 桌面端或 Web 端，支持版本 `^0.2.2-rc.3`（0.2.2-rc.3 起，不含 0.3.0 及以上）——与包内 `engines.dsh` 及市场索引 `versions[].engines.dsh` 一致。插件分类为**界面增强（UI Enhancements）**，与市场索引 `metadata.categories.ui` / `metadata.category: ui` 一致。插件没有运行时依赖，也没有构建步骤。
+- 前置：DSH 桌面端或 Web 端，支持版本 `^0.2.2-rc.3`（0.2.2-rc.3 起，不含 0.3.0 及以上）——与包内 `engines.dsh` 及市场索引 `versions[].engines.dsh` 一致。
+- 插件分类为**界面增强（UI Enhancements）**，与市场索引 `metadata.categories.ui` / `metadata.category: ui` 一致。
+- 插件没有运行时依赖，也没有构建步骤。
 
 **方式 A（npm，推荐）**
 
@@ -43,7 +62,7 @@ dsh plugin --profile <你的 profile> add dsh-quick-phrases
 
 在 DSH 里打开 **Plugins → Discover → Index sources**，添加本仓库的索引地址：
 
-```
+```text
 https://raw.githubusercontent.com/pengtang1024/dsh-quick-phrases/main/index.json
 ```
 
@@ -160,7 +179,7 @@ node test/preview.mjs --shot      # 再用无头 Chromium 截图
 
 目录结构：
 
-```
+```text
 client.js          客户端插件全部逻辑（ModuleLoader 工厂 + 三个插槽组件）
 index.js           Host 侧空壳（export function apply() {}）
 cordis.patch.yml   bundle 插入行

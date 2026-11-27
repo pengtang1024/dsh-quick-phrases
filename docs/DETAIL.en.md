@@ -2,7 +2,11 @@
 
 ## What it does
 
-Adds a row of phrase buttons (`继续`, `提交`, `推送`, `发版` …) next to the composer. Clicking one sends that phrase's **text** right away; the button shows only its **label**. The two are edited separately, so a button can stay short while the message it sends is a full sentence.
+Adds a row of phrase buttons (`继续`, `提交`, `推送`, `发版` …) next to the composer.
+
+- **Label** — the button shows the phrase's short display name.
+- **Text** — clicking sends the phrase's full text right away.
+- The two are edited separately, so a button can stay short while the message it sends is a full sentence.
 
 **The click behaviour is configurable** (default: send right away):
 
@@ -28,7 +32,8 @@ All three rows stay registered, but only the selected one renders — switching 
 The row should never get in the way of typing, so it can fold on demand and its resting shape is a setting:
 
 - **Fold by hand**: click `收起 ▾` at the end of the row and it collapses into a small `▸ 快捷短语` pill; click the pill to expand it temporarily, and 「收起」 to fold it again.
-- **Fold automatically** (default): with "When the composer has text" set to "Fold automatically", the row collapses into the pill as soon as the composer holds text or attachments, and expands again once the draft is cleared. Pick "Keep it visible" to keep the full row instead.
+- **Fold automatically** (default): with "When the composer has text" set to "Fold automatically", the row collapses into the pill as soon as the composer holds text or attachments, and expands again once the draft is cleared.
+- **Keep it visible**: pick this to keep the full row instead.
 
 Clicking a phrase after expanding the pill behaves exactly as before: when the composer already has content the text is inserted at the caret instead of replacing it.
 
@@ -36,13 +41,20 @@ The **Phrase row** dropdown in Settings turns the resting shape into a three-way
 
 - **Show the full row**: the whole row stays, and the fold chip still folds it temporarily;
 - **Fold into a pill**: only the small pill remains next to the composer; click it to expand;
-- **Hide completely**: the row leaves the UI entirely — **not even the pill stays**, nothing at all is rendered. The only way back is Settings → Quick phrases, where the dropdown is marked "Row hidden"; choosing "Show the full row" there also clears any leftover folded state and restores the full row.
+- **Hide completely**: the row leaves the UI entirely — **not even the pill stays**, nothing at all is rendered.
+  - The only way back is Settings → Quick phrases, where the dropdown is marked "Row hidden".
+  - Choosing "Show the full row" there also clears any leftover folded state and restores the full row.
 
 The `收起 ▾` chip is equivalent to picking "Fold into a pill". This dropdown stores no state of its own: its value is derived from `dsh.quick-phrases.hidden.v1` (which wins) and `dsh.quick-phrases.collapsed.v1`, and switching composes writes to those two existing keys.
 
+> **Tip**: both keys already exist; switching the dropdown only rewrites them in combination — no new storage key is added.
+
 ### Automatic shedding on narrow screens
 
-When the window or container gets narrow, the row sheds its controls **one by one by actual available width** — no setting to touch, and no fixed pixel breakpoint (the fit is computed from the real width, so short and long captions both degrade correctly):
+When the window or container gets narrow, the row sheds its controls **one by one by actual available width**:
+
+- no setting to touch, and no fixed pixel breakpoint;
+- the fit is computed from the real width, so short and long captions both degrade correctly.
 
 1. The **Fold** chip at the end goes first (least important);
 2. then the **Manage** entry;
@@ -50,7 +62,12 @@ When the window or container gets narrow, the row sheds its controls **one by on
 
 At extreme narrowness **only the first usable phrase remains**; the row never empties, and with no phrases at all the fold and manage entries stay reachable. Widen the window and the controls come back under the same rules.
 
-Even when the Fold chip is shed on a narrow screen, the row can still be folded: a draft folds it into a pill under the default "Fold automatically", or you can pick "Fold into a pill" from the "Phrase row" dropdown in Settings. When the Manage entry is shed, Settings → Quick phrases still opens the manager. The three-way dropdown, automatic folding and single-phrase hiding are all unchanged.
+Even when the Fold chip is shed on a narrow screen, the row can still be folded:
+
+- a draft folds it into a pill under the default "Fold automatically";
+- or you can pick "Fold into a pill" from the "Phrase row" dropdown in Settings.
+
+When the Manage entry is shed, Settings → Quick phrases still opens the manager. The three-way dropdown, automatic folding and single-phrase hiding are all unchanged.
 
 A single phrase can be hidden with the **eye** toggle on its card in the manager: the chip disappears from the row while the card stays in the manager marked "Hidden"; click again to bring it back.
 
@@ -80,15 +97,33 @@ Open **Settings → Quick phrases**. The page has two layers: five behaviour opt
 - **✕**: the first click only arms the delete ("Confirm"), a second click within four seconds removes the phrase.
 - **Add phrase** appends an empty card and focuses its caption; **Restore defaults** arms on the first click and restores the four built-in phrases on the second.
 
-Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage` key `dsh.quick-phrases.v1`; the position is `dsh.quick-phrases.placement.v1`, the click behaviour `dsh.quick-phrases.click.v1`, the folded state `dsh.quick-phrases.collapsed.v1`, the auto-fold option `dsh.quick-phrases.autohide.v1`, the complete-hide state `dsh.quick-phrases.hidden.v1`, the manage-entry style `dsh.quick-phrases.manage.v1`), scoped to the DSH Web origin — a different machine or cleared site data loses it. The "Phrase row" dropdown adds no key of its own: it reads and writes `hidden.v1` and `collapsed.v1`.
+Changes save and apply immediately, no restart. The list lives in local browser storage (`localStorage`), scoped to the DSH Web origin — a different machine or cleared site data loses it. Each state maps to a key:
+
+```text
+dsh.quick-phrases.v1             phrase list
+dsh.quick-phrases.placement.v1   position
+dsh.quick-phrases.click.v1       click behaviour
+dsh.quick-phrases.collapsed.v1   folded state
+dsh.quick-phrases.autohide.v1    auto-fold option
+dsh.quick-phrases.hidden.v1      complete-hide state
+dsh.quick-phrases.manage.v1      manage-entry style
+```
+
+The "Phrase row" dropdown adds no key of its own: it reads and writes `hidden.v1` and `collapsed.v1`.
 
 ## Opening it from the composer
 
-The **Manage** chip at the end of the row jumps to the same settings page (expand the pill first when the row is folded). It can be switched to a gear icon or hidden in Settings; once hidden the row shows no manage button and Settings → Quick phrases is the way in. If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
+The **Manage** chip at the end of the row jumps to the same settings page (expand the pill first when the row is folded).
+
+- It can be switched to a gear icon or hidden in Settings.
+- Once hidden the row shows no manage button and Settings → Quick phrases is the way in.
+- If the settings entry is not mounted in this UI yet, it says "请在『设置 — 快捷短语』中管理" instead.
 
 ## Styling
 
-Chips, fields and cards use the host's semantic tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`), so they follow DSH's dark and light themes. The primary button's foreground uses `--dsw-alias-label-primary-foreground`, matching the host Button's primary variant, so contrast holds in both themes.
+Chips, fields and cards use the host's semantic tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`), so they follow DSH's dark and light themes.
+
+The primary button's foreground uses `--dsw-alias-label-primary-foreground`, matching the host Button's primary variant, so contrast holds in both themes.
 
 ## Boundaries
 

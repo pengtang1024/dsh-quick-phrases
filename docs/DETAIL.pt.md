@@ -2,7 +2,11 @@
 
 ## O que faz
 
-Adiciona uma linha de botões de frase (`继续`, `提交`, `推送`, `发版` …) ao lado do campo de entrada. Um clique envia diretamente o **texto** da frase; o botão mostra apenas o seu **rótulo**. Os dois são editados separadamente, de modo que o botão pode ser curto enquanto a mensagem enviada é uma frase completa.
+Adiciona uma linha de botões de frase (`继续`, `提交`, `推送`, `发版` …) ao lado do campo de entrada.
+
+- **Rótulo** — o botão mostra apenas o nome curto da frase.
+- **Texto** — um clique envia diretamente o texto completo da frase.
+- Os dois são editados separadamente, de modo que o botão pode ser curto enquanto a mensagem enviada é uma frase completa.
 
 **O comportamento ao clicar é configurável** (por padrão: enviar diretamente):
 
@@ -28,7 +32,8 @@ As três linhas são registradas, mas apenas a selecionada é renderizada — tr
 A linha de frases não deve atrapalhar a digitação, então pode ser recolhida temporariamente e sua forma habitual é uma configuração:
 
 - **Recolher manualmente**: clique em `收起 ▾` no fim da linha e ela se reduz a uma pequena pílula `▸ 快捷短语`; clique na pílula para expandi-la temporariamente e novamente em «收起» para recolhê-la.
-- **Recolher automaticamente** (padrão): com «Quando o campo de entrada tem texto» definido como «Recolher automaticamente», a linha se reduz à pílula assim que há texto ou anexos no campo, e se expande quando o rascunho é esvaziado. Escolha «Manter visível» para manter a linha completa.
+- **Recolher automaticamente** (padrão): com «Quando o campo de entrada tem texto» definido como «Recolher automaticamente», a linha se reduz à pílula assim que há texto ou anexos no campo, e se expande quando o rascunho é esvaziado.
+- **Manter visível** — escolha esta opção para manter a linha completa.
 
 Depois de expandir a pílula, clicar em uma frase funciona exatamente como com a linha aberta: se o campo já tiver conteúdo, o texto é inserido no cursor e o rascunho não é substituído.
 
@@ -36,13 +41,20 @@ O menu suspenso **Exibição da linha de frases** nas configurações resume a f
 
 - **Mostrar a linha completa**: a linha permanece visível e o «收起» no fim ainda pode recolhê-la temporariamente;
 - **Recolher em pílula**: resta apenas uma pequena pílula ao lado do campo de entrada; clique nela para expandir;
-- **Ocultar completamente**: a linha desaparece por inteiro da interface — **nem a pílula permanece**, nada é mostrado. A única volta é em **Configurações → Frases rápidas**, trocando o menu para uma das duas primeiras opções (ao escolher «Ocultar completamente», a indicação «整排已隐藏» aparece ao lado). Voltar para «Mostrar a linha completa» também limpa o estado recolhido e restaura a linha completa diretamente.
+- **Ocultar completamente**: a linha desaparece por inteiro da interface — **nem a pílula permanece**, nada é mostrado.
+  - A única volta é em **Configurações → Frases rápidas**, trocando o menu para uma das duas primeiras opções (ao escolher «Ocultar completamente», a indicação «整排已隐藏» aparece ao lado).
+  - Voltar para «Mostrar a linha completa» também limpa o estado recolhido e restaura a linha completa diretamente.
 
 O botão `收起 ▾` no fim da linha equivale a escolher «Recolher em pílula». Esse menu não armazena estado próprio: seu valor é derivado de `dsh.quick-phrases.hidden.v1` (que tem prioridade) e `dsh.quick-phrases.collapsed.v1`, e a troca grava ambas as chaves existentes.
 
+> **Dica**: ambas as chaves já existem; trocar o menu apenas as regrava em combinação — nenhuma chave nova é criada.
+
 ### Descarte automático em telas estreitas
 
-Ao estreitar a janela, a linha descarta seus controles **um por um conforme a largura realmente disponível**, sem configuração e sem um limite fixo em pixels (o cálculo usa a largura medida, então rótulos curtos e longos degradam corretamente):
+Ao estreitar a janela, a linha descarta seus controles **um por um conforme a largura realmente disponível**:
+
+- sem configuração e sem um limite fixo em pixels;
+- o cálculo usa a largura medida, então rótulos curtos e longos degradam corretamente.
 
 1. primeiro o botão **收起** (o menos importante);
 2. depois o acesso **Gerenciar**;
@@ -50,7 +62,12 @@ Ao estreitar a janela, a linha descarta seus controles **um por um conforme a la
 
 Em largura extrema **apenas a primeira frase utilizável permanece** — a linha nunca fica vazia e, se não houver frases, os acessos recolher e gerenciar continuam disponíveis. Ao alargar a janela, os controles voltam pelas mesmas regras.
 
-Mesmo que o botão recolher desapareça em telas estreitas, a linha ainda pode ser recolhida: um rascunho a reduz à pílula com «Recolher automaticamente», ou você escolhe «Recolher em pílula» no menu «Exibição da linha de frases». Se o acesso de gerenciamento desaparecer, **Configurações → Frases rápidas** continua abrindo o gerenciador. Os três estados, o recolhimento automático e a ocultação de frases não mudam.
+Mesmo que o botão recolher desapareça em telas estreitas, a linha ainda pode ser recolhida:
+
+- um rascunho a reduz à pílula com «Recolher automaticamente»;
+- ou você escolhe «Recolher em pílula» no menu «Exibição da linha de frases».
+
+Se o acesso de gerenciamento desaparecer, **Configurações → Frases rápidas** continua abrindo o gerenciador. Os três estados, o recolhimento automático e a ocultação de frases não mudam.
 
 Uma frase específica pode ser ocultada pelo interruptor de **olho** em seu cartão no gerenciador: o botão desaparece da linha, mas o cartão permanece no gerenciador marcado como «已隐藏»; clique novamente para restaurá-la.
 
@@ -80,15 +97,33 @@ Abra **Configurações → Frases rápidas**. A página tem duas partes: cinco c
 - **✕**: o primeiro clique apenas transforma o botão em «Confirmar»; um segundo clique em até quatro segundos realmente exclui a frase, evitando exclusões acidentais.
 - **Adicionar frase** acrescenta um cartão vazio e coloca o cursor no rótulo; **Restaurar padrões** entra no estado de confirmação no primeiro clique e restaura as quatro frases integradas no segundo.
 
-As alterações são salvas e aplicadas imediatamente, sem reiniciar. As frases ficam no armazenamento local do navegador (chave `localStorage` `dsh.quick-phrases.v1`; a posição em `dsh.quick-phrases.placement.v1`, o comportamento de clique em `dsh.quick-phrases.click.v1`, o estado recolhido em `dsh.quick-phrases.collapsed.v1`, a opção de recolhimento automático em `dsh.quick-phrases.autohide.v1`, o estado de ocultação total em `dsh.quick-phrases.hidden.v1` e o estilo da entrada de gerenciamento em `dsh.quick-phrases.manage.v1`), com o isolamento de armazenamento web do DSH — trocar de máquina ou limpar os dados do site faz com que se percam. O menu «Exibição da linha de frases» não ocupa uma chave nova: ele lê e grava `hidden.v1` e `collapsed.v1`.
+As alterações são salvas e aplicadas imediatamente, sem reiniciar. As frases ficam no armazenamento local do navegador (`localStorage`), com o isolamento de armazenamento web do DSH — trocar de máquina ou limpar os dados do site faz com que se percam. Cada estado corresponde a uma chave:
+
+```text
+dsh.quick-phrases.v1             lista de frases
+dsh.quick-phrases.placement.v1   posição
+dsh.quick-phrases.click.v1       comportamento de clique
+dsh.quick-phrases.collapsed.v1   estado recolhido
+dsh.quick-phrases.autohide.v1    opção de recolhimento automático
+dsh.quick-phrases.hidden.v1      estado de ocultação total
+dsh.quick-phrases.manage.v1      estilo da entrada de gerenciamento
+```
+
+O menu «Exibição da linha de frases» não ocupa uma chave nova: ele lê e grava `hidden.v1` e `collapsed.v1`.
 
 ## Abrir diretamente pelo campo de entrada
 
-O botão **Gerenciar** no fim da linha leva à mesma página de configurações (se a linha estiver recolhida na pílula, expanda-a primeiro). A entrada de gerenciamento pode ser trocada por um ícone de engrenagem ou oculta nas configurações; uma vez oculta, a linha não mostra mais o botão e **Configurações → Frases rápidas** é a forma de entrar. Se a entrada de configurações ainda não estiver montada na interface atual, a mensagem exibida é «请在『设置 — 快捷短语』中管理».
+O botão **Gerenciar** no fim da linha leva à mesma página de configurações (se a linha estiver recolhida na pílula, expanda-a primeiro).
+
+- A entrada de gerenciamento pode ser trocada por um ícone de engrenagem ou oculta nas configurações.
+- Uma vez oculta, a linha não mostra mais o botão e **Configurações → Frases rápidas** é a forma de entrar.
+- Se a entrada de configurações ainda não estiver montada na interface atual, a mensagem exibida é «请在『设置 — 快捷短语』中管理».
 
 ## Estilo
 
-Botões, campos e cartões usam os tokens semânticos do host (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) e seguem os temas escuro e claro do DSH. A cor de primeiro plano do botão principal vem de `--dsw-alias-label-primary-foreground`, igual à variante primary do botão do host, garantindo contraste nos dois temas.
+Botões, campos e cartões usam os tokens semânticos do host (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) e seguem os temas escuro e claro do DSH.
+
+A cor de primeiro plano do botão principal vem de `--dsw-alias-label-primary-foreground`, igual à variante primary do botão do host, garantindo contraste nos dois temas.
 
 ## Limites
 

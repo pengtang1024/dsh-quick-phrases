@@ -2,7 +2,11 @@
 
 ## Ce que fait l'extension
 
-Ajoute une rangée de boutons de phrase (`继续`, `提交`, `推送`, `发版` …) à côté du champ de saisie. Un clic envoie directement le **texte** de la phrase ; le bouton n'affiche que son **libellé**. Les deux se modifient séparément : le bouton peut rester court alors que le message envoyé est une phrase complète.
+Ajoute une rangée de boutons de phrase (`继续`, `提交`, `推送`, `发版` …) à côté du champ de saisie.
+
+- **Libellé** : le bouton n'affiche que le nom court de la phrase.
+- **Texte** : un clic envoie directement le texte complet de la phrase.
+- Les deux se modifient séparément : le bouton peut rester court alors que le message envoyé est une phrase complète.
 
 **Le comportement au clic est configurable** (par défaut : envoi direct) :
 
@@ -28,7 +32,8 @@ Les trois rangées sont enregistrées, mais seule la rangée choisie est affich�
 La rangée ne doit pas gêner la saisie : elle peut être repliée à la demande et sa forme habituelle est un paramètre :
 
 - **Replier manuellement** : cliquez sur `收起 ▾` à la fin de la rangée ; elle se réduit alors en une petite pastille `▸ 快捷短语`. Cliquez sur la pastille pour la déplier temporairement, puis de nouveau sur «收起» pour la replier.
-- **Replier automatiquement** (par défaut) : avec «Quand le champ contient du texte» réglé sur «Replier automatiquement», la rangée se réduit en pastille dès que le champ contient du texte ou des pièces jointes, et se déplie quand le brouillon est vidé. Choisissez «Garder visible» pour que la rangée complète reste affichée.
+- **Replier automatiquement** (par défaut) : avec «Quand le champ contient du texte» réglé sur «Replier automatiquement», la rangée se réduit en pastille dès que le champ contient du texte ou des pièces jointes, et se déplie quand le brouillon est vidé.
+- **Garder visible** : choisissez cette option pour que la rangée complète reste affichée.
 
 Après avoir déplié la pastille, cliquer sur une phrase se comporte exactement comme avec la rangée ouverte : si le champ contient déjà du texte, celui-ci est inséré au curseur sans écraser le brouillon.
 
@@ -36,13 +41,20 @@ Le menu déroulant **Affichage de la rangée** des paramètres réduit la forme 
 
 - **Afficher la rangée complète** : la rangée reste visible et le bouton «收起» à la fin permet toujours de la replier temporairement ;
 - **Replier en pastille** : il ne reste qu'une petite pastille à côté du champ ; cliquez dessus pour déplier ;
-- **Masquer entièrement** : la rangée disparaît complètement de l'interface, **sans laisser même la pastille** ; rien n'est affiché. Pour la récupérer, retournez dans **Paramètres → Phrases rapides** et remettez le menu sur l'une des deux premières options (quand «Masquer entièrement» est choisi, la mention «整排已隐藏» s'affiche à côté). Revenir à «Afficher la rangée complète» efface en même temps l'état replié et la rangée complète réapparaît directement.
+- **Masquer entièrement** : la rangée disparaît complètement de l'interface, **sans laisser même la pastille** ; rien n'est affiché.
+  - Pour la récupérer, retournez dans **Paramètres → Phrases rapides** et remettez le menu sur l'une des deux premières options (quand «Masquer entièrement» est choisi, la mention «整排已隐藏» s'affiche à côté).
+  - Revenir à «Afficher la rangée complète» efface en même temps l'état replié et la rangée complète réapparaît directement.
 
 Le bouton `收起 ▾` à la fin équivaut à choisir «Replier en pastille». Ce menu déroulant ne stocke aucun état propre : sa valeur est dérivée de `dsh.quick-phrases.hidden.v1` (prioritaire) et de `dsh.quick-phrases.collapsed.v1` ; le changement écrit ces deux clés existantes.
 
+> **Astuce** : ces deux clés existent déjà ; changer le menu ne fait que les réécrire en combinaison, sans ajouter de nouvelle clé.
+
 ### Suppression automatique sur écran étroit
 
-Quand la fenêtre se rétrécit, la rangée supprime ses contrôles **les uns après les autres selon la largeur réellement disponible**, sans réglage et sans seuil fixe en pixels (le calcul utilise la largeur mesurée : les libellés courts comme longs se dégradent correctement) :
+Quand la fenêtre se rétrécit, la rangée supprime ses contrôles **les uns après les autres selon la largeur réellement disponible** :
+
+- sans réglage et sans seuil fixe en pixels ;
+- le calcul utilise la largeur mesurée : les libellés courts comme longs se dégradent correctement.
 
 1. d'abord le bouton **收起** (le moins important) ;
 2. puis l'accès **Gérer** ;
@@ -50,7 +62,12 @@ Quand la fenêtre se rétrécit, la rangée supprime ses contrôles **les uns ap
 
 À largeur extrême **seule la première phrase utilisable reste** ; la rangée ne se vide jamais et, sans aucune phrase, les accès Replier et Gérer restent disponibles. Élargir la fenêtre ramène les contrôles selon les mêmes règles.
 
-Même si le bouton Replier disparaît sur écran étroit, la rangée peut toujours être repliée : un brouillon la réduit en pastille avec «Replier automatiquement», ou vous pouvez choisir «Replier en pastille» dans le menu «Affichage de la rangée». Si l'accès Gérer disparaît, **Paramètres → Phrases rapides** ouvre toujours le gestionnaire. Les trois états, le repli automatique et le masquage d'une phrase restent inchangés.
+Même si le bouton Replier disparaît sur écran étroit, la rangée peut toujours être repliée :
+
+- un brouillon la réduit en pastille avec «Replier automatiquement» ;
+- ou vous pouvez choisir «Replier en pastille» dans le menu «Affichage de la rangée».
+
+Si l'accès Gérer disparaît, **Paramètres → Phrases rapides** ouvre toujours le gestionnaire. Les trois états, le repli automatique et le masquage d'une phrase restent inchangés.
 
 Une phrase précise peut être masquée avec l'interrupteur **œil** sur sa carte dans le gestionnaire : son bouton disparaît de la rangée, mais la carte reste dans le gestionnaire marquée «已隐藏» ; recliquez pour la réafficher.
 
@@ -80,15 +97,33 @@ Ouvrez **Paramètres → Phrases rapides**. La page comporte deux parties : cinq
 - **✕** : le premier clic transforme seulement le bouton en «Confirmer» ; un second clic dans les quatre secondes supprime vraiment la phrase, pour éviter une suppression accidentelle.
 - **Ajouter une phrase** : ajoute une carte vide et place le curseur sur le libellé ; **Restaurer les valeurs par défaut** passe en état de confirmation au premier clic et restaure les quatre phrases intégrées au second.
 
-Les modifications sont enregistrées et appliquées immédiatement, sans redémarrage. Les phrases sont conservées dans le stockage local du navigateur (clé `localStorage` `dsh.quick-phrases.v1` ; la position dans `dsh.quick-phrases.placement.v1`, le comportement au clic dans `dsh.quick-phrases.click.v1`, l'état replié dans `dsh.quick-phrases.collapsed.v1`, l'option de repli automatique dans `dsh.quick-phrases.autohide.v1`, l'état de masquage total dans `dsh.quick-phrases.hidden.v1` et le style de l'accès de gestion dans `dsh.quick-phrases.manage.v1`), avec l'isolation du stockage Web de DSH : changer de machine ou effacer les données du site les fait perdre. Le menu «Affichage de la rangée» n'utilise aucune clé supplémentaire : il lit et écrit `hidden.v1` et `collapsed.v1`.
+Les modifications sont enregistrées et appliquées immédiatement, sans redémarrage. Les phrases sont conservées dans le stockage local du navigateur (`localStorage`), avec l'isolation du stockage Web de DSH : changer de machine ou effacer les données du site les fait perdre. Chaque état correspond à une clé :
+
+```text
+dsh.quick-phrases.v1             liste des phrases
+dsh.quick-phrases.placement.v1   position
+dsh.quick-phrases.click.v1       comportement au clic
+dsh.quick-phrases.collapsed.v1   état replié
+dsh.quick-phrases.autohide.v1    option de repli automatique
+dsh.quick-phrases.hidden.v1      état de masquage total
+dsh.quick-phrases.manage.v1      style de l'accès de gestion
+```
+
+Le menu «Affichage de la rangée» n'utilise aucune clé supplémentaire : il lit et écrit `hidden.v1` et `collapsed.v1`.
 
 ## Ouvrir depuis le champ de saisie
 
-Le bouton **Gérer** à la fin de la rangée mène à la même page de paramètres (si la rangée est repliée en pastille, dépliez-la d'abord). L'accès de gestion peut être remplacé par une icône engrenage ou masqué dans les paramètres ; une fois masqué, la rangée n'affiche plus de bouton de gestion et **Paramètres → Phrases rapides** est la voie d'accès. Si l'entrée des paramètres n'est pas encore montée dans l'interface actuelle, le message «请在『设置 — 快捷短语』中管理» s'affiche à la place.
+Le bouton **Gérer** à la fin de la rangée mène à la même page de paramètres (si la rangée est repliée en pastille, dépliez-la d'abord).
+
+- L'accès de gestion peut être remplacé par une icône engrenage ou masqué dans les paramètres.
+- Une fois masqué, la rangée n'affiche plus de bouton de gestion et **Paramètres → Phrases rapides** est la voie d'accès.
+- Si l'entrée des paramètres n'est pas encore montée dans l'interface actuelle, le message «请在『设置 — 快捷短语』中管理» s'affiche à la place.
 
 ## Style
 
-Boutons, champs et cartes utilisent les jetons sémantiques de l'hôte (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) et suivent les thèmes clair et sombre de DSH. La couleur de premier plan du bouton principal reprend `--dsw-alias-label-primary-foreground`, comme la variante primary du bouton de l'hôte, pour garantir le contraste dans les deux thèmes.
+Boutons, champs et cartes utilisent les jetons sémantiques de l'hôte (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-*`) et suivent les thèmes clair et sombre de DSH.
+
+La couleur de premier plan du bouton principal reprend `--dsw-alias-label-primary-foreground`, comme la variante primary du bouton de l'hôte, pour garantir le contraste dans les deux thèmes.
 
 ## Limites
 

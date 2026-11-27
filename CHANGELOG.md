@@ -1,6 +1,6 @@
 # 变更记录
 
-## 未发布
+## 0.10.0
 
 - **短语行窄屏按实际可用宽度逐级舍弃**：不再依赖固定 px 断点，用 `ResizeObserver` 测容器宽度并缓存每个胶囊实测宽度，配合纯函数 `fitRowToWidth` 计算存活方案。舍弃顺序固定为「收起 → 管理 → 短语从末尾往前」，极窄时只保留第一条可用短语、不丢光；无短语时收起与管理仍可达。窗口变宽自动恢复，不新增设置项，三态 full/pill/hidden、自动收起、单条隐藏与管理入口三态等既有行为不变。
 - 测试探针 `window.__DQP_WIDTH_FIT__` 支持在无 DOM 的沙箱里注入宽度，`test/smoke.mjs` 覆盖四级舍弃顺序，`test/preview.mjs` 新增窄屏宽度降级预览；README、`docs/ARCHITECTURE.md`、七语 `docs/DETAIL*.md` 同步说明。未新增用户可见文案 key，未 bump 版本号。

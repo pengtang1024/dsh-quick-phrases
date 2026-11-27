@@ -58,6 +58,8 @@ Une phrase précise peut être masquée avec l'interrupteur **œil** sur sa cart
 
 Ouvrez **Paramètres → Phrases rapides**. La page comporte deux parties : cinq paramètres de comportement en haut, la liste des phrases en bas.
 
+> **Ajustement de conception pour petits écrans** : sur les écrans étroits (≤560px), le gestionnaire ne modifie que la mise en page — l'étiquette accompagne son menu déroulant, les explications restent complètes, les cibles tactiles s'agrandissent, les boutons de section partagent une ligne, les marges se resserrent et le long texte passe à la ligne n'importe où ; **aucun élément n'est supprimé et aucune fonction ne change** (mécanisme distinct de la suppression selon la largeur de la rangée, décrite plus haut).
+
 **Paramètres de comportement** (appliqués dès la sélection, sans redémarrage). Valeurs, valeur par défaut et effet des cinq paramètres :
 
 | Paramètre | Valeurs | Valeur par défaut | Effet |

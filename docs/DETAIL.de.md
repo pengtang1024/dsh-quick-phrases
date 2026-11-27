@@ -58,6 +58,8 @@ Eine einzelne Phrase lässt sich im Verwaltungsbereich über den **Augen**-Schal
 
 Öffne **Einstellungen → Schnellphrasen**. Die Seite hat zwei Ebenen: oben fünf Verhaltensoptionen, unten die Phrasenliste.
 
+> **Optimierung für kleine Bildschirme**: Auf schmalen Bildschirmen (≤560px) wird im Verwalter nur das Layout angepasst — Beschriftung und Dropdown stehen in einer Zeile, Erklärungen bleiben vollständig, Touch-Ziele werden größer, Abschnittsbuttons teilen sich eine Zeile, Ränder werden enger und langer Text umbricht an beliebiger Stelle; **es wird kein Element entfernt und keine Funktion geändert** (ein anderer Mechanismus als das breitenbasierte Ausblenden der Zeile, siehe oben).
+
 **Verhaltensoptionen** (gelten sofort nach Auswahl, kein Neustart nötig). Werte, Standardwert und Wirkung der fünf Optionen:
 
 | Option | Werte | Standardwert | Wirkung |

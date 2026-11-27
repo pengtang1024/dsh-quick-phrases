@@ -119,6 +119,8 @@ plan     = fitRowToWidth(available, {...}) // 只在未折叠时按可用宽度�
 
 短语行的宽度拟合相关样式：`DOCK_CSS` 里 `.dqp-dock` 用 `display:flex; flex-wrap:wrap; gap:6px; min-width:0`，`.dqp-chip` 是 `flex:0 0 auto` 并带 `max-width`（普通行 200px / 工具行 130px）——胶囊不收缩、超出就换行，实测宽度才稳定可缓存；`CHIP_GAP = 6` 与 CSS 的 `gap:6px` 保持一致，拟合计算才和实际占用对得上。工具行 `.dqp-dock-tool` 另有 `flex-wrap:nowrap; overflow-x:auto`，窄屏在滚动之上仍先按上述顺序舍弃控件。
 
+设置 / 管理页（`MANAGER_CSS`）另有一套小屏排版优化， `@media (max-width:560px)` 段：选项标签与下拉同行（长标签自然换行）、每项说明完整保留在控件下方、所有按钮与图标触控目标 ≥36px、textarea 最小高度 52px、预览改为 `white-space:normal` 可换行不再省略号截断、区块标题与两个按钮平分一行、`.dqp-page` 页边距收紧到 `12px`，所有长文本加 `overflow-wrap:anywhere` 防溢出。**这套规则纯 CSS、只改排版，不删任何 DOM 元素、不改任何状态或功能。** 它与上面的短语行宽度降级是两套独立逻辑：`fitRowToWidth` 按实际宽度逐级舍弃控件（渲染层行为），而管理页小屏优化从不舍弃元素——二者不可混为一谈。
+
 「输入框上方」的位置需要复制宿主 dock 的几何，否则会贴在会话栏左缘：
 
 ```css

@@ -4,6 +4,7 @@
 
 - **短语行窄屏按实际可用宽度逐级舍弃**：不再依赖固定 px 断点，用 `ResizeObserver` 测容器宽度并缓存每个胶囊实测宽度，配合纯函数 `fitRowToWidth` 计算存活方案。舍弃顺序固定为「收起 → 管理 → 短语从末尾往前」，极窄时只保留第一条可用短语、不丢光；无短语时收起与管理仍可达。窗口变宽自动恢复，不新增设置项，三态 full/pill/hidden、自动收起、单条隐藏与管理入口三态等既有行为不变。
 - 测试探针 `window.__DQP_WIDTH_FIT__` 支持在无 DOM 的沙箱里注入宽度，`test/smoke.mjs` 覆盖四级舍弃顺序，`test/preview.mjs` 新增窄屏宽度降级预览；README、`docs/ARCHITECTURE.md`、七语 `docs/DETAIL*.md` 同步说明。未新增用户可见文案 key，未 bump 版本号。
+- **设置 / 管理页小屏设计优化**：`MANAGER_CSS` 的 `@media (max-width:560px)` 段只做排版优化——选项标签与下拉同行（长标签自然换行）、每项说明完整保留、触控目标放大（按钮 / 图标 ≥36px、textarea 最小 52px）、区块头标题与按钮平分一行、页边距收紧、预览改为可换行不再省略号截断、所有长文本 `overflow-wrap:anywhere` 防溢出。**不删任何元素、不改任何功能**，与短语行的「按宽度舍弃」是两套独立逻辑。README、`docs/ARCHITECTURE.md`、七语 `docs/DETAIL*.md` 同步说明；未 bump 版本号。
 
 ## 0.9.2
 

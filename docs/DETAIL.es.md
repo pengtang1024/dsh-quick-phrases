@@ -58,6 +58,8 @@ Una frase concreta se puede ocultar con el interruptor del **ojo** en su tarjeta
 
 Abre **Ajustes → Frases rápidas**. La página tiene dos partes: arriba, cinco ajustes de comportamiento; abajo, la lista de frases.
 
+> **Mejora de diseño en pantallas estrechas**: en pantallas estrechas (≤560px) el administrador solo ajusta el diseño: la etiqueta va junto al desplegable, las explicaciones se conservan completas, los objetivos táctiles crecen, los botones de sección comparten fila, los márgenes se reducen y el texto largo se ajusta en cualquier punto; **no se elimina ningún elemento ni cambia la función** (mecanismo distinto del descarte por anchura de la fila, descrito más arriba).
+
 **Ajustes de comportamiento** (se aplican al seleccionarlos, sin reiniciar). Valores, valor predeterminado y efecto de los cinco:
 
 | Opción | Valores | Valor predeterminado | Efecto |

@@ -58,6 +58,8 @@ A single phrase can be hidden with the **eye** toggle on its card in the manager
 
 Open **Settings → Quick phrases**. The page has two layers: five behaviour options on top, the phrase list below.
 
+> **Small-screen design polish**: on narrow screens (≤560px) the manager only refines layout — labels sit beside their dropdowns, explanations stay complete, touch targets grow, section buttons share a row, margins tighten and long text wraps anywhere; **no element is removed and no behaviour changes** (a different mechanism from the row's width-based shedding above).
+
 **Behaviour options** (applied on selection, no restart needed). Each option's values, default and effect:
 
 | Option | Values | Default | Effect |

@@ -58,6 +58,8 @@ Uma frase específica pode ser ocultada pelo interruptor de **olho** em seu cart
 
 Abra **Configurações → Frases rápidas**. A página tem duas partes: cinco configurações de comportamento em cima, a lista de frases embaixo.
 
+> **Ajuste de design para telas pequenas**: em telas estreitas (≤560px) o gerenciador apenas refina o layout — o rótulo fica ao lado do menu suspenso, as explicações permanecem completas, os alvos de toque crescem, os botões da seção dividem uma linha, as margens são reduzidas e o texto longo quebra em qualquer ponto; **nenhum elemento é removido e nenhuma funcionalidade muda** (mecanismo diferente do descarte por largura da fila, descrito acima).
+
 **Configurações de comportamento** (aplicadas ao selecionar, sem reiniciar). Valores, valor padrão e efeito das cinco:
 
 | Opção | Valores | Padrão | Efeito |

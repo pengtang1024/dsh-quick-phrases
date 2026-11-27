@@ -253,6 +253,79 @@ assert.ok(
   'a failed settings jump shows the fallback hint',
 )
 
+/* ---------------- width fitting: shed collapse -> manage -> phrases from the end ---------------- */
+
+const widthFit = sandbox.window.__DQP_WIDTH_FIT__
+assert.equal(typeof widthFit.fit, 'function', 'the width fitter is exposed on the sandbox window')
+assert.equal(typeof widthFit.setAvailableWidth, 'function', 'the available-width probe is exposed')
+assert.equal(typeof widthFit.setChipWidths, 'function', 'the chip-width probe is exposed')
+assert.equal(typeof widthFit.setTrailingWidths, 'function', 'the trailing-width probe is exposed')
+assert.equal(typeof widthFit.reset, 'function', 'the width probe can be reset')
+// fit() returns an object created inside the VM realm; spreading it into a
+// host-realm object keeps assert.deepEqual's prototype check happy.
+const fit = (available, options) => ({ ...widthFit.fit(available, options) })
+
+// Four 40px phrases + 20px collapse + 20px manage + 5 gaps of 6px = 230px.
+const fitBase = {
+  phraseWidths: [40, 40, 40, 40],
+  collapseWidth: 20,
+  manageWidth: 20,
+  manage: true,
+  gap: 6,
+}
+assert.deepEqual(fit(230, fitBase), { phraseCount: 4, collapse: true, manage: true }, 'a wide row keeps every chip')
+assert.deepEqual(fit(210, fitBase), { phraseCount: 4, collapse: false, manage: true }, 'the collapse chip is shed first')
+assert.deepEqual(fit(190, fitBase), { phraseCount: 4, collapse: false, manage: false }, 'the manage chip is shed next')
+assert.deepEqual(fit(150, fitBase), { phraseCount: 3, collapse: false, manage: false }, 'then phrases go from the end')
+assert.deepEqual(fit(100, fitBase), { phraseCount: 2, collapse: false, manage: false }, 'phrase shedding continues one by one')
+assert.deepEqual(fit(10, fitBase), { phraseCount: 1, collapse: false, manage: false }, 'an extremely narrow row keeps one phrase and nothing else')
+// The hidden manage entry feeds `manage: false` in; that is already false in the
+// plan before any width pressure, so shedding it must not be attributed to width.
+assert.deepEqual(
+  fit(300, { ...fitBase, manage: false }),
+  { phraseCount: 4, collapse: true, manage: false },
+  'manage:false stays false even at a wide width',
+)
+assert.deepEqual(
+  fit(10, { ...fitBase, manage: false }),
+  { phraseCount: 1, collapse: false, manage: false },
+  'manage:false and a narrow width still keep the first phrase',
+)
+assert.deepEqual(
+  fit(0, { ...fitBase, phraseWidths: [] }),
+  { phraseCount: 0, collapse: true, manage: true },
+  'with no phrase at all both trailing controls stay reachable',
+)
+
+// Drive the real Chips render through the probe. Two 60px phrases + 20px
+// collapse + 20px manage + 3 gaps of 6px = 178px.
+widthFit.setChipWidths([60, 60])
+widthFit.setTrailingWidths(20, 20)
+const chipKinds = (tree) =>
+  byClass(tree, 'dqp-chip').map((chip) => {
+    const cn = String(chip.props.className ?? '')
+    if (cn.includes('dqp-chip-collapse')) return 'collapse'
+    if (cn.includes('dqp-chip-manage')) return 'manage'
+    return textOf(chip).trim()
+  })
+const widthTiers = [
+  { name: 'wf-wide', px: 178, expect: ['继续', '发版', 'collapse', 'manage'] },
+  { name: 'wf-mid', px: 175, expect: ['继续', '发版', 'manage'] },
+  { name: 'wf-no-manage', px: 150, expect: ['继续', '发版'] },
+  { name: 'wf-narrow', px: 100, expect: ['继续'] },
+  { name: 'wf-extreme', px: 20, expect: ['继续'] },
+]
+for (const tier of widthTiers) {
+  widthFit.setAvailableWidth(tier.px)
+  assert.deepEqual(chipKinds(render(tier.name, dockReg.component, dockProps)), tier.expect, tier.name + ' renders the fitted chip order')
+}
+widthFit.reset()
+assert.deepEqual(
+  chipKinds(render('wf-reset', dockReg.component, dockProps)),
+  ['继续', '发版', 'collapse', 'manage'],
+  'reset restores real DOM measurement and renders the full row without a DOM',
+)
+
 /* ---------------- hiding: the whole row folds into one pill ---------------- */
 
 const collapseStored = () => localStorage.getItem('dsh.quick-phrases.collapsed.v1')
@@ -739,4 +812,4 @@ assert.ok(byClass(dockWithoutT, 'dqp-chip').length >= 3, 'dock renders without a
 const managerWithoutT = sectionReg.component({})
 assert.ok(rowsOf(managerWithoutT).length >= 1, 'manager renders without a t prop')
 
-console.log('PASS — click-to-send, dock chips, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')
+console.log('PASS — click-to-send, dock chips, width-fit shedding, folding, three-state row mode, complete hiding, manage entry modes, per-phrase hiding, manager CRUD, reorder, persistence, reset and settings jump behave')

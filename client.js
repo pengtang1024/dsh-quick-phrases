@@ -1001,6 +1001,97 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Width fitting: shed the least important chips first. Driven by the
+     * row's real content width (ResizeObserver), never by a fixed px
+     * breakpoint, so short and long captions both degrade correctly.
+     * ------------------------------------------------------------------ */
+
+    var CHIP_GAP = 6
+
+    function finitePx(value) {
+      return typeof value === 'number' && isFinite(value) ? value : null
+    }
+
+    function widthOf(value) {
+      var px = finitePx(value)
+      return px === null || px < 0 ? 0 : px
+    }
+
+    /**
+     * Pure, DOM-free fitter. Return the chips that survive at `available` px.
+     * Priority: collapse (least important) -> manage -> phrase chips from the
+     * end. The first usable phrase chip is never dropped; with no phrase at
+     * all both trailing controls stay reachable.
+     *
+     * options: { phraseWidths, collapseWidth, manageWidth, manage, gap }
+     * returns: { phraseCount, collapse, manage }
+     */
+    function fitRowToWidth(available, options) {
+      var opts = options && typeof options === 'object' ? options : {}
+      var widths = Array.isArray(opts.phraseWidths) ? opts.phraseWidths : []
+      var gap = widthOf(opts.gap)
+      if (gap === 0) gap = CHIP_GAP
+      var collapseWidth = widthOf(opts.collapseWidth)
+      var manageWidth = widthOf(opts.manageWidth)
+      var manage = opts.manage !== false
+      var plan = { phraseCount: widths.length, collapse: true, manage: manage }
+      var px = finitePx(available)
+
+      if (px === null || px <= 0 || widths.length === 0) return plan
+
+      function used(candidate) {
+        var total = 0
+        var count = 0
+        for (var i = 0; i < candidate.phraseCount; i += 1) {
+          total += widthOf(widths[i])
+          count += 1
+        }
+        if (candidate.collapse) { total += collapseWidth; count += 1 }
+        if (candidate.manage) { total += manageWidth; count += 1 }
+        if (count > 1) total += gap * (count - 1)
+        return total
+      }
+
+      while (used(plan) > px) {
+        if (plan.collapse) plan.collapse = false
+        else if (plan.manage) plan.manage = false
+        else if (plan.phraseCount > 1) plan.phraseCount -= 1
+        else break
+      }
+      return plan
+    }
+
+    /**
+     * Test seam: the smoke-test sandbox has no DOM / ResizeObserver, so it can
+     * pin the available width and the per-chip measured widths here. `null`
+     * restores real DOM measurement. No user-facing code writes this object.
+     */
+    var widthFitProbe = {
+      available: null,
+      phrases: null,
+      collapseWidth: null,
+      manageWidth: null,
+    }
+
+    window.__DQP_WIDTH_FIT__ = {
+      fit: fitRowToWidth,
+      setAvailableWidth: function (value) { widthFitProbe.available = finitePx(value) },
+      setChipWidths: function (widths) {
+        widthFitProbe.phrases = Array.isArray(widths) ? widths.slice() : null
+      },
+      setTrailingWidths: function (collapse, manage) {
+        widthFitProbe.collapseWidth = finitePx(collapse)
+        widthFitProbe.manageWidth = finitePx(manage)
+      },
+      reset: function () {
+        widthFitProbe.available = null
+        widthFitProbe.phrases = null
+        widthFitProbe.collapseWidth = null
+        widthFitProbe.manageWidth = null
+      },
+    }
+
+    /* ------------------------------------------------------------------ *
      * Styles: local to each component, removed on unmount.
      * ------------------------------------------------------------------ */
 
@@ -1310,6 +1401,12 @@ window.__ModuleLoader__.load({
         var showHint = React.useState(false)
         var setShowHint = showHint[1]
         var hintTimer = React.useRef(null)
+        // Width fitting state. These hooks are unconditional so the hook count
+        // never changes with the placement, folded state, or fitted chip count.
+        var widthTickState = React.useState(0)
+        var bumpWidth = widthTickState[1]
+        var rowRef = React.useRef(null)
+        var metricsRef = React.useRef({ available: null, phrases: {} })
         var hasDraft = draft.trim() !== '' || attachments > 0
         var folded = collapsed || (autoHide === 'fold' && hasDraft && !peeked)
         var usable = phrases.filter(function (phrase) {
@@ -1327,6 +1424,58 @@ window.__ModuleLoader__.load({
             if (hintTimer.current !== null) window.clearTimeout(hintTimer.current)
           }
         }, [])
+
+        // Re-measure on every render so changes in caption/phrase list update
+        // the fit. ResizeObserver adds a nudge when the container changes without
+        // a React update; without it the row still fits on each render.
+        React.useEffect(function () {
+          function measure() {
+            var node = rowRef.current
+            if (node === null || node === undefined) return
+            var available = finitePx(node.clientWidth)
+            if (available === null) return
+            // Shed chips must keep their cached widths; otherwise dropping one
+            // would free an estimated 0px next render and make the row oscillate.
+            var phrases = {}
+            for (var key in metricsRef.current.phrases) {
+              if (Object.prototype.hasOwnProperty.call(metricsRef.current.phrases, key)) {
+                phrases[key] = metricsRef.current.phrases[key]
+              }
+            }
+            var collapseWidth = metricsRef.current.collapseWidth
+            var manageWidth = metricsRef.current.manageWidth
+            for (var i = 0; i < node.children.length; i += 1) {
+              var child = node.children[i]
+              if (child === null || child === undefined || typeof child.className !== 'string') continue
+              var value = finitePx(child.getBoundingClientRect ? child.getBoundingClientRect().width : child.offsetWidth)
+              if (value === null) continue
+              if (child.className.indexOf('dqp-chip-collapse') >= 0) collapseWidth = value
+              else if (child.className.indexOf('dqp-chip-manage') >= 0) manageWidth = value
+              else if (child.className.indexOf('dqp-chip') >= 0) phrases[i] = value
+            }
+            var prev = metricsRef.current
+            var changed = prev.available !== available || prev.collapseWidth !== collapseWidth ||
+              prev.manageWidth !== manageWidth
+            if (!changed) {
+              for (var nextKey in phrases) {
+                if (Object.prototype.hasOwnProperty.call(phrases, nextKey) && prev.phrases[nextKey] !== phrases[nextKey]) {
+                  changed = true
+                  break
+                }
+              }
+            }
+            if (changed) {
+              metricsRef.current = { available: available, phrases: phrases, collapseWidth: collapseWidth, manageWidth: manageWidth }
+              bumpWidth(function (value) { return value + 1 })
+            }
+          }
+          measure()
+          var node = rowRef.current
+          if (node === null || node === undefined || typeof window.ResizeObserver !== 'function') return undefined
+          var observer = new window.ResizeObserver(measure)
+          observer.observe(node)
+          return function () { observer.disconnect() }
+        })
 
         if (current !== spec.value) return null
 
@@ -1389,6 +1538,38 @@ window.__ModuleLoader__.load({
         if (spec.compact) rowClass += ' dqp-dock-tool'
         if (spec.inset) rowClass += ' dqp-dock-inset'
 
+        // Available width comes from the real DOM measurement (or the test
+        // probe). Without either we render the full row — safe degradation.
+        var available = widthFitProbe.available !== null
+          ? widthFitProbe.available
+          : finitePx(metricsRef.current.available)
+        var measured = widthFitProbe.phrases
+        var phraseWidths = usable.map(function (phrase, index) {
+          if (measured !== null && finitePx(measured[index]) !== null) return widthOf(measured[index])
+          var fromDom = finitePx(metricsRef.current.phrases[index])
+          if (fromDom !== null) return widthOf(fromDom)
+          var caption = phraseCaption(phrase)
+          var units = 0
+          for (var ci = 0; ci < caption.length; ci += 1) {
+            units += caption.charCodeAt(ci) > 255 ? 12 : 7
+          }
+          return Math.min(spec.compact ? 130 : 200, units + (spec.compact ? 22 : 26))
+        })
+        var collapseWidth = widthFitProbe.collapseWidth !== null
+          ? widthFitProbe.collapseWidth
+          : widthOf(metricsRef.current.collapseWidth) || 24
+        var manageWidth = widthFitProbe.manageWidth !== null
+          ? widthFitProbe.manageWidth
+          : widthOf(metricsRef.current.manageWidth) || 24
+        var plan = fitRowToWidth(available, {
+          phraseWidths: phraseWidths,
+          collapseWidth: collapseWidth,
+          manageWidth: manageWidth,
+          manage: manageEntry !== 'hidden',
+          gap: CHIP_GAP,
+        })
+        var visiblePhrases = usable.slice(0, plan.phraseCount)
+
         var children = [h('style', { key: 'style' }, DOCK_CSS)]
         if (folded) {
           // One pill keeps the caret-insertion path reachable: opening it is a
@@ -1408,8 +1589,8 @@ window.__ModuleLoader__.load({
             }, dockIcon('expand')),
           ))
         } else {
-          children.push(h('div', { key: 'row', className: rowClass },
-            usable.map(function (phrase, index) {
+          children.push(h('div', { key: 'row', ref: rowRef, className: rowClass },
+            visiblePhrases.map(function (phrase, index) {
               return h('button', {
                 key: phrase.id + ':' + index,
                 type: 'button',
@@ -1419,7 +1600,7 @@ window.__ModuleLoader__.load({
                 onClick: function () { activate(phrase) },
               }, phraseCaption(phrase))
             }),
-            h('button', {
+            plan.collapse ? h('button', {
               key: 'collapse',
               type: 'button',
               className: 'dqp-chip dqp-chip-icon dqp-chip-collapse',
@@ -1430,15 +1611,15 @@ window.__ModuleLoader__.load({
                 setPeeked(false)
                 setCollapsed(true)
               },
-            }, dockIcon('collapse')),
-            manageEntry === 'hidden' ? null : h('button', {
+            }, dockIcon('collapse')) : null,
+            plan.manage && manageEntry !== 'hidden' ? h('button', {
               key: 'manage',
               type: 'button',
               className: 'dqp-chip dqp-chip-manage dqp-chip-icon' + (manageEntry === 'text' ? ' dqp-chip-manage-icon' : ''),
               title: t('dock.manage'),
               'aria-label': t('dock.manage'),
               onClick: handleManage,
-            }, dockIcon('manage')),
+            }, dockIcon('manage')) : null,
           ))
         }
         if (showHint[0]) {

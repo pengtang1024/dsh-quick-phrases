@@ -5,6 +5,7 @@
 - **短语行窄屏按实际可用宽度逐级舍弃**：不再依赖固定 px 断点，用 `ResizeObserver` 测容器宽度并缓存每个胶囊实测宽度，配合纯函数 `fitRowToWidth` 计算存活方案。舍弃顺序固定为「收起 → 管理 → 短语从末尾往前」，极窄时只保留第一条可用短语、不丢光；无短语时收起与管理仍可达。窗口变宽自动恢复，不新增设置项，三态 full/pill/hidden、自动收起、单条隐藏与管理入口三态等既有行为不变。
 - 测试探针 `window.__DQP_WIDTH_FIT__` 支持在无 DOM 的沙箱里注入宽度，`test/smoke.mjs` 覆盖四级舍弃顺序，`test/preview.mjs` 新增窄屏宽度降级预览；README、`docs/ARCHITECTURE.md`、七语 `docs/DETAIL*.md` 同步说明。未新增用户可见文案 key，未 bump 版本号。
 - **设置 / 管理页小屏设计优化**：`MANAGER_CSS` 的 `@media (max-width:560px)` 段只做排版优化——选项标签与下拉同行（长标签自然换行）、每项说明完整保留、触控目标放大（按钮 / 图标 ≥36px、textarea 最小 52px）、区块头标题与按钮平分一行、页边距收紧、预览改为可换行不再省略号截断、所有长文本 `overflow-wrap:anywhere` 防溢出。**不删任何元素、不改任何功能**，与短语行的「按宽度舍弃」是两套独立逻辑。README、`docs/ARCHITECTURE.md`、七语 `docs/DETAIL*.md` 同步说明；未 bump 版本号。
+- **修复真机 WebView 下同一宽度、不同会话降级不一致**：同一设备同一宽度，有的会话正常显示整排、有的却提前舍弃控件。三处根因一并处理：① **首帧测量无兜底**——首帧 `clientWidth` 常为 0，无 `ResizeObserver` 的 WebView 里之后不再测量，行一直按「无宽度」处理；改为用 `requestAnimationFrame`（缺失时降级 `setTimeout(0)`）做有界延迟补测（最多 3 次、仅在宽度仍为 0 时重试），保证二次测量，且只有测量值真变化才触发重渲染，卸载时清理回调。② **宽度缓存按 DOM 下标索引、被折叠胶囊污染**——收起后的 `.dqp-pill` 与行尾控件被当成短语写进缓存，舍弃短语后下标错位导致降级结果漂移；改为短语 chip 带 `data-dqp-phrase-id`、缓存按 `phrase.id` 索引，测量时显式排除 `.dqp-pill` 与「收起 / 管理」按钮。③ **测试探针全局无条件读取**——`window.__DQP_WIDTH_FIT__` 的遗留值会改变生产渲染；探针收进工厂闭包并加 `enabled` 开关（setter 自动启用、`reset` 同时关闭并清空），生产渲染默认不读探针。仅渲染层改动，不 bump 版本号、不新增设置项或文案 key。
 
 ## 0.9.2
 

@@ -1063,27 +1063,44 @@ window.__ModuleLoader__.load({
 
     /**
      * Test seam: the smoke-test sandbox has no DOM / ResizeObserver, so it can
-     * pin the available width and the per-chip measured widths here. `null`
-     * restores real DOM measurement. No user-facing code writes this object.
+     * pin the available width and the per-chip measured widths here. It is
+     * inert until a test explicitly opts in (any setter flips `enabled`), so a
+     * production render never consults a stale global left by another session.
+     * `reset()` turns it off again and restores real DOM measurement.
      */
     var widthFitProbe = {
+      enabled: false,
       available: null,
       phrases: null,
       collapseWidth: null,
       manageWidth: null,
     }
 
+    function probeIsActive() {
+      return widthFitProbe.enabled === true
+    }
+
     window.__DQP_WIDTH_FIT__ = {
       fit: fitRowToWidth,
-      setAvailableWidth: function (value) { widthFitProbe.available = finitePx(value) },
+      // Explicit opt-in helpers; the setters below also opt in so existing
+      // probe-driven tests keep working without a separate enable() call.
+      enable: function () { widthFitProbe.enabled = true },
+      disable: function () { widthFitProbe.enabled = false },
+      setAvailableWidth: function (value) {
+        widthFitProbe.enabled = true
+        widthFitProbe.available = finitePx(value)
+      },
       setChipWidths: function (widths) {
+        widthFitProbe.enabled = true
         widthFitProbe.phrases = Array.isArray(widths) ? widths.slice() : null
       },
       setTrailingWidths: function (collapse, manage) {
+        widthFitProbe.enabled = true
         widthFitProbe.collapseWidth = finitePx(collapse)
         widthFitProbe.manageWidth = finitePx(manage)
       },
       reset: function () {
+        widthFitProbe.enabled = false
         widthFitProbe.available = null
         widthFitProbe.phrases = null
         widthFitProbe.collapseWidth = null
@@ -1452,7 +1469,10 @@ window.__ModuleLoader__.load({
 
         // Re-measure on every render so changes in caption/phrase list update
         // the fit. ResizeObserver adds a nudge when the container changes without
-        // a React update; without it the row still fits on each render.
+        // a React update. A first paint often reports clientWidth === 0 before
+        // layout settles, so also schedule bounded deferred re-measures: a
+        // static session must still descend from the full row even when no
+        // ResizeObserver exists and no further React render happens.
         React.useEffect(function () {
           function measure() {
             var node = rowRef.current
@@ -1461,6 +1481,9 @@ window.__ModuleLoader__.load({
             if (available === null) return
             // Shed chips must keep their cached widths; otherwise dropping one
             // would free an estimated 0px next render and make the row oscillate.
+            // Cache is keyed by phrase.id, never by DOM index: a shed chip leaves
+            // a hole in node.children, and the folded pill / trailing controls
+            // must never be mistaken for a phrase.
             var phrases = {}
             for (var key in metricsRef.current.phrases) {
               if (Object.prototype.hasOwnProperty.call(metricsRef.current.phrases, key)) {
@@ -1474,9 +1497,15 @@ window.__ModuleLoader__.load({
               if (child === null || child === undefined || typeof child.className !== 'string') continue
               var value = finitePx(child.getBoundingClientRect ? child.getBoundingClientRect().width : child.offsetWidth)
               if (value === null) continue
-              if (child.className.indexOf('dqp-chip-collapse') >= 0) collapseWidth = value
-              else if (child.className.indexOf('dqp-chip-manage') >= 0) manageWidth = value
-              else if (child.className.indexOf('dqp-chip') >= 0) phrases[i] = value
+              var cls = child.className
+              if (cls.indexOf('dqp-chip-collapse') >= 0) { collapseWidth = value; continue }
+              if (cls.indexOf('dqp-chip-manage') >= 0) { manageWidth = value; continue }
+              if (cls.indexOf('dqp-pill') >= 0 || cls.indexOf('dqp-chip') < 0) continue
+              var phraseId = typeof child.getAttribute === 'function'
+                ? child.getAttribute('data-dqp-phrase-id')
+                : null
+              if (phraseId === null || phraseId === undefined || phraseId === '') continue
+              phrases[phraseId] = value
             }
             var prev = metricsRef.current
             var changed = prev.available !== available || prev.collapseWidth !== collapseWidth ||
@@ -1496,10 +1525,46 @@ window.__ModuleLoader__.load({
           }
           measure()
           var node = rowRef.current
-          if (node === null || node === undefined || typeof window.ResizeObserver !== 'function') return undefined
-          var observer = new window.ResizeObserver(measure)
-          observer.observe(node)
-          return function () { observer.disconnect() }
+          if (node === null || node === undefined) return undefined
+
+          var disposed = false
+          var deferredId = null
+          var hasRaf = typeof window.requestAnimationFrame === 'function'
+          function later() {
+            if (disposed) return
+            deferredId = null
+            measure()
+            scheduleDeferred()
+          }
+          function scheduleDeferred() {
+            if (disposed || deferredId !== null) return
+            // Only retry while the width is still unusable; a real width means
+            // the synchronous measure already did its job. Bound the chain so a
+            // permanently hidden/zero-width row cannot spin rAF forever.
+            var width = finitePx(node.clientWidth)
+            if (width !== null && width > 0) return
+            if (deferredCount >= 3) return
+            deferredCount += 1
+            deferredId = hasRaf
+              ? window.requestAnimationFrame(later)
+              : window.setTimeout(later, 0)
+          }
+          var deferredCount = 0
+          scheduleDeferred()
+
+          var observer = null
+          if (typeof window.ResizeObserver === 'function') {
+            observer = new window.ResizeObserver(measure)
+            observer.observe(node)
+          }
+          return function () {
+            disposed = true
+            if (deferredId !== null) {
+              if (hasRaf && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(deferredId)
+              else window.clearTimeout(deferredId)
+            }
+            if (observer !== null) observer.disconnect()
+          }
         })
 
         if (current !== spec.value) return null
@@ -1563,15 +1628,20 @@ window.__ModuleLoader__.load({
         if (spec.compact) rowClass += ' dqp-dock-tool'
         if (spec.inset) rowClass += ' dqp-dock-inset'
 
-        // Available width comes from the real DOM measurement (or the test
-        // probe). Without either we render the full row — safe degradation.
-        var available = widthFitProbe.available !== null
+        // Available width comes from the real DOM measurement. The test probe is
+        // only consulted when a test has explicitly enabled it, so a stale
+        // global cannot change a production render in another session. Without
+        // either measurement we render the full row — safe degradation.
+        var probeActive = probeIsActive()
+        var available = probeActive && widthFitProbe.available !== null
           ? widthFitProbe.available
           : finitePx(metricsRef.current.available)
-        var measured = widthFitProbe.phrases
+        // Probe widths are an array indexed by usable position (test contract);
+        // the DOM cache is keyed by phrase.id so shedding cannot shift indices.
+        var measured = probeActive ? widthFitProbe.phrases : null
         var phraseWidths = usable.map(function (phrase, index) {
           if (measured !== null && finitePx(measured[index]) !== null) return widthOf(measured[index])
-          var fromDom = finitePx(metricsRef.current.phrases[index])
+          var fromDom = finitePx(metricsRef.current.phrases[phrase.id])
           if (fromDom !== null) return widthOf(fromDom)
           var caption = phraseCaption(phrase)
           var units = 0
@@ -1580,10 +1650,10 @@ window.__ModuleLoader__.load({
           }
           return Math.min(spec.compact ? 130 : 200, units + (spec.compact ? 22 : 26))
         })
-        var collapseWidth = widthFitProbe.collapseWidth !== null
+        var collapseWidth = probeActive && widthFitProbe.collapseWidth !== null
           ? widthFitProbe.collapseWidth
           : widthOf(metricsRef.current.collapseWidth) || 24
-        var manageWidth = widthFitProbe.manageWidth !== null
+        var manageWidth = probeActive && widthFitProbe.manageWidth !== null
           ? widthFitProbe.manageWidth
           : widthOf(metricsRef.current.manageWidth) || 24
         var plan = fitRowToWidth(available, {
@@ -1620,6 +1690,7 @@ window.__ModuleLoader__.load({
                 key: phrase.id + ':' + index,
                 type: 'button',
                 className: 'dqp-chip',
+                'data-dqp-phrase-id': phrase.id,
                 title: phrase.text,
                 'aria-label': phraseCaption(phrase) + ' — ' + t('dock.tooltip'),
                 onClick: function () { activate(phrase) },
